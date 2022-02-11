@@ -30,12 +30,20 @@ public class SquadUpdate {
 	
 	public int[] squad;
 	private int counter;
+	
+	private int transferCount;
 
 	public SquadUpdate(ArrayList<PlayerValueCurrent> players, ArrayList<Integer> teams, SquadData squadData, UserData userData) {
 		this.players = players;
 		this.teams = teams;
 		this.squadData = squadData;
 		this.userData = userData;
+		
+		transferCount = 11;
+	}
+	
+	public void setTransferCount(int x) {
+		transferCount = x;
 	}
 	
 	public void solve() {
@@ -47,13 +55,14 @@ public class SquadUpdate {
 			squad = new int[15];
 			counter = 0;
 			
-			System.out.println(solver.objective().value());
+			//System.out.println(solver.objective().value());
 			
 			for (MPVariable v : solver.variables()) {
 				
 				if (v.solutionValue() == 1) {
 					
 					squad[counter] = Integer.parseInt(v.name());
+					//System.out.println(v.name());
 					counter++;
 					
 				}			
@@ -69,6 +78,7 @@ public class SquadUpdate {
 		MPObjective objective = solver.objective();
 		
 		MPConstraint cost;
+		MPConstraint transfers;
 		
 		//Make constraints for every team.
 		for (int t : teams) {
@@ -85,6 +95,7 @@ public class SquadUpdate {
 		
 		//Make cost constraint.
 		cost = solver.makeConstraint(0, squadData.sellValues() + userData.getMoneyRemaining(), "cost");
+		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		
 		for (PlayerValueCurrent p : players) {
 			
@@ -94,7 +105,7 @@ public class SquadUpdate {
 			
 			for (MPConstraint c : solver.constraints()) {
 				
-				if (c.name().equals("cost")) {continue;}
+				if (c.name().equals("cost") || c.name().equals("transfers")) {continue;}
 				
 				switch (c.name()) {
 				
@@ -130,11 +141,14 @@ public class SquadUpdate {
 				
 			}
 			
+			//Determines how many transfers can be made.
 			if (squadData.inSquad(p.id)) {
-				objective.setCoefficient(x, p.composite);
+				transfers.setCoefficient(x, 0);
 			} else {
-				objective.setCoefficient(x, p.composite-4);
-			}			
+				transfers.setCoefficient(x, 1);
+			}	
+			
+			objective.setCoefficient(x, p.composite);
 		}
 		
 		objective.setMaximization();

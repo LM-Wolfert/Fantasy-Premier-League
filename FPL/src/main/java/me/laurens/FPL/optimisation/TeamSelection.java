@@ -50,12 +50,18 @@ public class TeamSelection {
 			//If the team has less than 11 players add one.
 			if (val < 11) {
 
-				team[val] = p.id;
-
 				//If they are a goalkeeper set the value to true.
 				if (p.position == 1) {
 					goalKeeper = true;
 				}
+				
+				if (!goalKeeper && val == 10) {
+					bench[val2] = p.id;
+					val2++;
+					continue;
+				}
+				
+				team[val] = p.id;
 
 				val++;
 			} else {
@@ -88,5 +94,18 @@ public class TeamSelection {
 			System.out.println(benchNames[i]);
 
 		}
+	}
+	
+	public double expectedPoints(double modifier) {
+		
+		double sum = 0;
+		
+		for (int i = 0; i < 11; i++) {
+			
+			sum += players[i].composite;
+			
+		}
+		
+		return (sum+modifier);
 	}
 }

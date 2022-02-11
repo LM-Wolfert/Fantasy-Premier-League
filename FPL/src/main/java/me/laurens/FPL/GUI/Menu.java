@@ -164,12 +164,12 @@ public class Menu {
 		if (squadData.hasSquad()) {
 			showSquad();
 		}
-		
+
 		getTeamButton = new JButton("Get Team for Current Squad");
 		getTeamButton.setFont(new Font("Serif", Font.BOLD, 12));
 		getTeamButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 				if (!squadData.hasSquad()) {
 					System.out.println("No squad found, please create an initial squad first.");
 					return;
@@ -177,131 +177,222 @@ public class Menu {
 
 				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
 				int id;
-				
+
 				for (int i = 0; i < 15; i++) {
 
 					id = squadData.getId(i);
 					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
 
 				}
-				
+
 				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
 				teamSelection.solve();
-				
+
 				teamSelection.show();
-				
+
 			}	
 		});
 		getTeamButton.setBounds(196, 0, 196, 48);
 		desktopPane.add(getTeamButton);
-		
+
 		updateSquadButton = new JButton("Update Current Squad");
 		updateSquadButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updateSquadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
-				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
 
-				for (int id : player_ids) {
-
-					list.add(new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id)));					
-
-				}
-				
 				int id;
-				double sum = 0;
-				
+				//Get the expected points for the current team;
+				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+				int[] currentSquad = new int[15];
+
 				for (int i = 0; i < 15; i++) {
 
 					id = squadData.getId(i);
-					sum += getPlayers.getEp(id) * (getPlayers.getPlayChance(id)/100.0);
+					currentSquad[i] = id;
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
 
 				}
-				System.out.println(sum);
+
+				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				teamSelection.solve();
+				double expectedPointsCurrent = teamSelection.expectedPoints(0);
+				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
+
+				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
+				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+
+				for (int id1 : player_ids) {
+
+					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), getPlayers.getEp(id1), getPlayers.getPlayChance(id1)));					
+
+				}
 
 				ArrayList<Integer> teams = getTeams.getTeamIDs();
 
 				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
-				solver.setup();
-				solver.solve();
 
-				int[] squad = solver.squad;
-				squad = getPlayers.sortByPosition(squad);
-				String[] names = getPlayers.getNames(squad);
-				
-				ArrayList<Integer> currentSquad = squadData.getSquad();
+				//Test optimal squad for up to 11 transfers.
+				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
+				boolean changed = false;
+				String[] names = new String[15];
+				for (int i = 1; i <= 11; i++) {
 
-				int currentValue = squadData.sellValues();
-				
-				for (int i = 0; i < 15; i++) {
-					
-					if (currentSquad.contains(squad[i])) {
-						
-						squadData.setPosition(i, squad[i], names[i]);
-						
-					} else {
-						
-						squadData.setPosition(i, squad[i], names[i], getPlayers.getCost(squad[i]));
-						
+					solver.setTransferCount(i);
+					solver.setup();
+					solver.solve();
+
+					int[] squad = solver.squad;
+					squad = getPlayers.sortByPosition(squad);
+					names = getPlayers.getNames(squad);
+
+					for (int j = 0; j < 15; j++) {
+
+						id = squad[j];
+						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
 					}
+
+					teamSelection = new TeamSelection(players, getPlayers);
+					teamSelection.solve();
+
+					//For each transfer over 1 add a modifier of -4 points.
+					int modifier = (i-1) * -4;
+					double expectedPoints = teamSelection.expectedPoints(modifier);
+
+					if (expectedPoints > expectedPointsCurrent) {
+						//Update current value.
+						expectedPointsCurrent = expectedPoints;
+						System.out.println("Expected points for this team: " + expectedPoints);
+						changed = true;
+						//Update current squad.
+						for (int h = 0; h < 15; h++) {
+
+							currentSquad[h] = squad[h];
+							System.out.println(names[h]);
+						}
+					}
+
 				}
-				
-				int newValue = squadData.sellValues();
-				userData.setMoneyRemaining(currentValue-newValue);
+				if (!changed) {
 
-				showSquad();
+					System.out.println("No better team could be found.");
+				} else {
 
+					ArrayList<Integer> existingSquad = squadData.getSquad();
+
+					int currentValue = squadData.sellValues();
+
+					for (int i = 0; i < 15; i++) {
+
+						if (existingSquad.contains(currentSquad[i])) {
+
+							squadData.setPosition(i, currentSquad[i], names[i]);
+
+						} else {
+
+							squadData.setPosition(i, currentSquad[i], names[i], getPlayers.getCost(currentSquad[i]));
+
+						}
+					}
+
+					int newValue = squadData.sellValues();
+					userData.setMoneyRemaining(currentValue-newValue);
+
+					showSquad();
+					
+				}
 
 			}
 		});
 		updateSquadButton.setBounds(196, 48, 196, 48);
 		desktopPane.add(updateSquadButton);
-		
+
 		testSquadButton = new JButton("Update Current Squad - Test");
 		testSquadButton.setFont(new Font("Serif", Font.BOLD, 12));
 		testSquadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
-				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
 
-				for (int id : player_ids) {
-
-					list.add(new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id)));					
-
-				}
-				
 				int id;
-				double sum = 0;
-				
+				//Get the expected points for the current team;
+				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+				int[] currentSquad = new int[15];
+
 				for (int i = 0; i < 15; i++) {
 
 					id = squadData.getId(i);
-					sum += getPlayers.getEp(id) * (getPlayers.getPlayChance(id)/100.0);
+					currentSquad[i] = id;
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
 
 				}
-				System.out.println(sum);
+
+				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				teamSelection.solve();
+				double expectedPointsCurrent = teamSelection.expectedPoints(0);
+				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
+
+				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
+				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+
+				for (int id1 : player_ids) {
+
+					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), getPlayers.getEp(id1), getPlayers.getPlayChance(id1)));					
+
+				}
 
 				ArrayList<Integer> teams = getTeams.getTeamIDs();
 
 				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
-				solver.setup();
-				solver.solve();
 
-				int[] squad = solver.squad;
-				squad = getPlayers.sortByPosition(squad);
-				String[] names = getPlayers.getNames(squad);
-				
-				for (int i = 0; i < 15; i++) {
-					
-					System.out.println(names[i]);
+				//Test optimal squad for up to 11 transfers.
+				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
+				boolean changed = false;
+				for (int i = 1; i <= 11; i++) {
+
+					solver.setTransferCount(i);
+					solver.setup();
+					solver.solve();
+
+					int[] squad = solver.squad;
+					squad = getPlayers.sortByPosition(squad);
+					String[] names = getPlayers.getNames(squad);
+
+					for (int j = 0; j < 15; j++) {
+
+						id = squad[j];
+						System.out.println(names[j]);
+						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+					}
+
+					teamSelection = new TeamSelection(players, getPlayers);
+					teamSelection.solve();
+
+					//For each transfer over 1 add a modifier of -4 points.
+					int modifier = (i-1) * -4;
+					double expectedPoints = teamSelection.expectedPoints(modifier);
+
+					if (expectedPoints > expectedPointsCurrent) {
+						//Update current value.
+						expectedPointsCurrent = expectedPoints;
+						System.out.println("Expected points for this team: " + expectedPoints);
+						changed = true;
+						//Update current squad.
+						for (int h = 0; h < 15; h++) {
+
+							currentSquad[h] = squad[h];
+							System.out.println(names[h]);
+						}
+					}
+
+				}
+				if (!changed) {
+					System.out.println("No better team could be found.");
 				}
 			}
 		});
 		testSquadButton.setBounds(392, 48, 196, 48);
 		desktopPane.add(testSquadButton);
-		
+
 		updateDatabaseButton = new JButton("Update Database");
 		updateDatabaseButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updateDatabaseButton.addActionListener(new ActionListener() {
@@ -343,18 +434,18 @@ public class Menu {
 
 		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (5/(double)720*height), (int) (320/(double)1280*width), (int) (25/(double)720*height));
 		databaseLabel.setFont(new Font("Serif", Font.BOLD, 16));
-		
+
 		infoPanel.add(databaseLabel);
-		
+
 		if (squadData.hasSquad()) {
 			squadValueLabel = new JLabel("Squad value: " + squadData.value());
 		} else {
 			squadValueLabel = new JLabel("No squad has been selected yet");
 		}
-		
+
 		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (25/(double)720*height), (int) (320/(double)1280*width), (int) (45/(double)720*height));
 		squadValueLabel.setFont(new Font("Serif", Font.BOLD, 16));
-		
+
 		infoPanel.add(squadValueLabel);
 
 		frame.getContentPane().add(desktopPane, BorderLayout.CENTER);
@@ -394,12 +485,12 @@ public class Menu {
 		for (int i = 0; i < 15; i++) {
 
 			if (playerLabels != null) {
-				
+
 				desktopPane.remove(playerLabels[i]);
-			
+
 			}
 		}
-			
+
 		playerLabels = new JTextField[15];
 
 		for (int i = 0; i < 15; i++) {
