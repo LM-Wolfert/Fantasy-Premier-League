@@ -2,7 +2,7 @@ CREATE TABLE IF NOT EXISTS players
 (
 	id		INT		NOT NULL,
 	name		TEXT		NOT NULL,
-	playChance_this	INT		NOT NULL,
+	playChance_next	INT		NOT NULL,
 	position	INT		NOT NULL,
 	form		DOUBLE		NOT NULL,
 	value_form	DOUBLE		NOT NULL,
@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS players
 	team_code	INT		NOT NULL,
 	total_points	INT		NOT NULL,
 	point_per_game	DOUBLE		NOT NULL,
-	ep_this		DOUBLE		NOT NULL,
+	ep_next		DOUBLE		NOT NULL,
 	cost		INT		NOT NULL,
 	ict_index_rank	INT		NOT NULL,
 	ict_index	DOUBLE		NOT NULL,
@@ -48,6 +48,7 @@ CREATE TABLE IF NOT EXISTS fixtures
 CREATE TABLE IF NOT EXISTS user_data
 (
 	last_update	BIGINT		NOT NULL,
+	money_remaining	DOUBLE		NOT NULL,
 	PRIMARY KEY(last_update)
 );
 
@@ -67,5 +68,6 @@ CREATE TABLE IF NOT EXISTS squad_data
 	position	INT		NOT NULL,
 	id		INT		NOT NULL,
 	name		VARCHAR(64)	NOT NULL,
+	purchase_price	DOUBLE		NOT NULL,
 	PRIMARY KEY(position)
 );

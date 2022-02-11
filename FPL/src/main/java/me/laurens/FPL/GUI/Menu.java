@@ -21,8 +21,11 @@ import javax.swing.JTextField;
 import javax.swing.border.TitledBorder;
 
 import me.laurens.FPL.Utils.Time;
-import me.laurens.FPL.optimisation.PlayerValue;
+import me.laurens.FPL.optimisation.PlayerValueCurrent;
+import me.laurens.FPL.optimisation.PlayerValueInitial;
 import me.laurens.FPL.optimisation.SquadSolver;
+import me.laurens.FPL.optimisation.SquadUpdate;
+import me.laurens.FPL.optimisation.TeamSelection;
 import me.laurens.FPL.sql.GetFixtures;
 import me.laurens.FPL.sql.GetGameweeks;
 import me.laurens.FPL.sql.GetPlayerHistory;
@@ -40,6 +43,9 @@ public class Menu {
 	private JPanel infoPanel;
 
 	private JButton getSquadButton;
+	private JButton updateSquadButton;
+	private JButton testSquadButton;
+	private JButton getTeamButton;
 	private JButton updateDatabaseButton;
 
 	private ImageIcon pitchIcon;
@@ -94,7 +100,7 @@ public class Menu {
 		getSquadButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				ArrayList<PlayerValue> list = new ArrayList<PlayerValue>();
+				ArrayList<PlayerValueInitial> list = new ArrayList<>();
 				ArrayList<Integer> player_ids = getPlayers.getPlayers();
 
 				double max_ict = getPlayers.maxIct();
@@ -129,7 +135,7 @@ public class Menu {
 					points_comp = getPlayers.getPointsComp(id, max_points);
 					minutes_comp = getPlayers.getMinutesComp(id, max_minutes);
 
-					list.add(new PlayerValue(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), ict_comp, form_comp, history, points_comp, minutes_comp));					
+					list.add(new PlayerValueInitial(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), ict_comp, form_comp, history, points_comp, minutes_comp));					
 
 				}
 
@@ -158,7 +164,144 @@ public class Menu {
 		if (squadData.hasSquad()) {
 			showSquad();
 		}
+		
+		getTeamButton = new JButton("Get Team for Current Squad");
+		getTeamButton.setFont(new Font("Serif", Font.BOLD, 12));
+		getTeamButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				if (!squadData.hasSquad()) {
+					System.out.println("No squad found, please create an initial squad first.");
+					return;
+				}
 
+				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+				int id;
+				
+				for (int i = 0; i < 15; i++) {
+
+					id = squadData.getId(i);
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+				}
+				
+				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				teamSelection.solve();
+				
+				teamSelection.show();
+				
+			}	
+		});
+		getTeamButton.setBounds(196, 0, 196, 48);
+		desktopPane.add(getTeamButton);
+		
+		updateSquadButton = new JButton("Update Current Squad");
+		updateSquadButton.setFont(new Font("Serif", Font.BOLD, 16));
+		updateSquadButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
+				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+
+				for (int id : player_ids) {
+
+					list.add(new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id)));					
+
+				}
+				
+				int id;
+				double sum = 0;
+				
+				for (int i = 0; i < 15; i++) {
+
+					id = squadData.getId(i);
+					sum += getPlayers.getEp(id) * (getPlayers.getPlayChance(id)/100.0);
+
+				}
+				System.out.println(sum);
+
+				ArrayList<Integer> teams = getTeams.getTeamIDs();
+
+				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
+				solver.setup();
+				solver.solve();
+
+				int[] squad = solver.squad;
+				squad = getPlayers.sortByPosition(squad);
+				String[] names = getPlayers.getNames(squad);
+				
+				ArrayList<Integer> currentSquad = squadData.getSquad();
+
+				int currentValue = squadData.sellValues();
+				
+				for (int i = 0; i < 15; i++) {
+					
+					if (currentSquad.contains(squad[i])) {
+						
+						squadData.setPosition(i, squad[i], names[i]);
+						
+					} else {
+						
+						squadData.setPosition(i, squad[i], names[i], getPlayers.getCost(squad[i]));
+						
+					}
+				}
+				
+				int newValue = squadData.sellValues();
+				userData.setMoneyRemaining(currentValue-newValue);
+
+				showSquad();
+
+
+			}
+		});
+		updateSquadButton.setBounds(196, 48, 196, 48);
+		desktopPane.add(updateSquadButton);
+		
+		testSquadButton = new JButton("Update Current Squad - Test");
+		testSquadButton.setFont(new Font("Serif", Font.BOLD, 12));
+		testSquadButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
+				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+
+				for (int id : player_ids) {
+
+					list.add(new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id)));					
+
+				}
+				
+				int id;
+				double sum = 0;
+				
+				for (int i = 0; i < 15; i++) {
+
+					id = squadData.getId(i);
+					sum += getPlayers.getEp(id) * (getPlayers.getPlayChance(id)/100.0);
+
+				}
+				System.out.println(sum);
+
+				ArrayList<Integer> teams = getTeams.getTeamIDs();
+
+				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
+				solver.setup();
+				solver.solve();
+
+				int[] squad = solver.squad;
+				squad = getPlayers.sortByPosition(squad);
+				String[] names = getPlayers.getNames(squad);
+				
+				for (int i = 0; i < 15; i++) {
+					
+					System.out.println(names[i]);
+				}
+			}
+		});
+		testSquadButton.setBounds(392, 48, 196, 48);
+		desktopPane.add(testSquadButton);
+		
 		updateDatabaseButton = new JButton("Update Database");
 		updateDatabaseButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updateDatabaseButton.addActionListener(new ActionListener() {
@@ -181,7 +324,7 @@ public class Menu {
 				databaseLabel.setText("Last updated database at " + Time.getDate(userData.getTime()));
 			}
 		});
-		updateDatabaseButton.setBounds(0, 49, 196, 48);
+		updateDatabaseButton.setBounds(0, 48, 196, 48);
 		desktopPane.add(updateDatabaseButton);
 
 		infoPanel = new JPanel();
@@ -238,6 +381,9 @@ public class Menu {
 		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (15/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
 
 		getSquadButton.setBounds(0, 0, (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		updateSquadButton.setBounds((int) (196/(double)1280*width), (int) (48/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		testSquadButton.setBounds((int) (392/(double)1280*width), (int) (48/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		getTeamButton.setBounds((int) (196/(double)1280*width), 0, (int) (196/(double)1280*width), (int) (48/(double)720*height));
 		updateDatabaseButton.setBounds(0, (int) (49/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
 
 		resizeSquad();

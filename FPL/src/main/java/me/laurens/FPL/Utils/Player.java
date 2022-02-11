@@ -4,9 +4,9 @@ public class Player {
 	
 	public String id;
 	public String web_name;
-	public String chance_of_playing_this_round;
+	public String chance_of_playing_next_round;
 	public String element_type;
-	public String ep_this;
+	public String ep_next;
 	public String form;
 	public String now_cost;
 	public String total_points;

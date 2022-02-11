@@ -54,13 +54,13 @@ public class GetPlayers {
 		for (Player p : elements.elements) {
 
 			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO players(id, name, playChance_this, position, form, value_form, value_season, team_code, total_points, point_per_game, ep_this, cost, ict_index_rank, ict_index, minutes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
+					"INSERT INTO players(id, name, playChance_next, position, form, value_form, value_season, team_code, total_points, point_per_game, ep_next, cost, ict_index_rank, ict_index, minutes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
 				statement.setInt(1, Integer.parseInt(p.id));
 				statement.setString(2, p.web_name);
-				if (p.chance_of_playing_this_round ==  null) {
-					statement.setInt(3, 0);
+				if (p.chance_of_playing_next_round ==  null) {
+					statement.setInt(3, 100);
 				} else {
-					statement.setInt(3, Integer.parseInt(p.chance_of_playing_this_round));
+					statement.setInt(3, Integer.parseInt(p.chance_of_playing_next_round));
 				}
 				statement.setInt(4, Integer.parseInt(p.element_type));
 				statement.setDouble(5, Double.parseDouble(p.form));
@@ -69,7 +69,7 @@ public class GetPlayers {
 				statement.setInt(8, Integer.parseInt(p.team_code));
 				statement.setInt(9, Integer.parseInt(p.total_points));
 				statement.setDouble(10, Double.parseDouble(p.points_per_game));
-				statement.setDouble(11, Double.parseDouble(p.ep_this));
+				statement.setDouble(11, Double.parseDouble(p.ep_next));
 				statement.setInt(12, Integer.parseInt(p.now_cost));
 				statement.setInt(13, Integer.parseInt(p.ict_index_rank));
 				statement.setDouble(14, Double.parseDouble(p.ict_index));
@@ -410,6 +410,42 @@ public class GetPlayers {
 			results.next();
 
 			return (results.getDouble(1)/max_minutes);
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
+	
+	public double getEp(int id) {
+
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT ep_next FROM players WHERE id=?;")) {
+			statement.setInt(1, id);
+
+			ResultSet results = statement.executeQuery();
+
+			results.next();
+
+			return (results.getDouble(1));
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
+	
+	public int getPlayChance(int id) {
+
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT playChance_next FROM players WHERE id=?;")) {
+			statement.setInt(1, id);
+
+			ResultSet results = statement.executeQuery();
+
+			results.next();
+
+			return (results.getInt(1));
 
 		} catch (SQLException e) {
 			e.printStackTrace();

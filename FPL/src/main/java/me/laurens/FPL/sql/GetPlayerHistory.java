@@ -50,6 +50,8 @@ public class GetPlayerHistory {
 			updateDatabase(p);
 
 		}
+		
+		System.out.println("Updated Player History Table");
 	}
 
 	public void readJson() {

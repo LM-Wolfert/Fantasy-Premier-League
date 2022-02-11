@@ -8,10 +8,22 @@ import com.google.ortools.linearsolver.MPObjective;
 import com.google.ortools.linearsolver.MPSolver;
 import com.google.ortools.linearsolver.MPVariable;
 
-public class SquadSolver {
+import me.laurens.FPL.sql.SquadData;
+import me.laurens.FPL.sql.UserData;
 
-	private ArrayList<PlayerValueInitial> players;
+//Deals with potential transfers.
+//Similar to the squadsolver method but for each transfer over 1 the cost is 3 points.
+//Must find an expected points value and compare it to that of the current squad to choose whether it's worth it. 
+//Thus we must not just look at optimal values, but also other ones.
+//Basically select all squads with more expected points than the current one and decide which is the best option from that.
+//Most important variable is expected points.
+public class SquadUpdate {
+	
+	private ArrayList<PlayerValueCurrent> players;
 	private ArrayList<Integer> teams;
+	
+	private SquadData squadData;
+	private UserData userData;
 	
 	private MPSolver solver;
 	private MPVariable x;
@@ -19,20 +31,23 @@ public class SquadSolver {
 	public int[] squad;
 	private int counter;
 
-	public SquadSolver(ArrayList<PlayerValueInitial> players, ArrayList<Integer> teams) {
+	public SquadUpdate(ArrayList<PlayerValueCurrent> players, ArrayList<Integer> teams, SquadData squadData, UserData userData) {
 		this.players = players;
 		this.teams = teams;
+		this.squadData = squadData;
+		this.userData = userData;
 	}
 	
 	public void solve() {
 		
 		final MPSolver.ResultStatus resultStatus = solver.solve();
-		
+
 		if (resultStatus == MPSolver.ResultStatus.OPTIMAL) {
-			//System.out.println("Solution:");
-			
+		
 			squad = new int[15];
 			counter = 0;
+			
+			System.out.println(solver.objective().value());
 			
 			for (MPVariable v : solver.variables()) {
 				
@@ -42,7 +57,7 @@ public class SquadSolver {
 					counter++;
 					
 				}			
-			}			
+			}
 		}		
 	}
 
@@ -50,6 +65,7 @@ public class SquadSolver {
 		
 		Loader.loadNativeLibraries();
 		solver = MPSolver.createSolver("SCIP");
+
 		MPObjective objective = solver.objective();
 		
 		MPConstraint cost;
@@ -62,15 +78,15 @@ public class SquadSolver {
 		}
 		
 		//Make constraints for each position.
-		solver.makeConstraint(0, 2, "pos1");
-		solver.makeConstraint(0, 5, "pos2");
-		solver.makeConstraint(0, 5, "pos3");
-		solver.makeConstraint(0, 3, "pos4");
+		solver.makeConstraint(2, 2, "pos1");
+		solver.makeConstraint(5, 5, "pos2");
+		solver.makeConstraint(5, 5, "pos3");
+		solver.makeConstraint(3, 3, "pos4");
 		
 		//Make cost constraint.
-		cost = solver.makeConstraint(0, 1000, "cost");
+		cost = solver.makeConstraint(0, squadData.sellValues() + userData.getMoneyRemaining(), "cost");
 		
-		for (PlayerValueInitial p : players) {
+		for (PlayerValueCurrent p : players) {
 			
 			x = solver.makeIntVar(0, 1, String.valueOf(p.id));
 			
@@ -114,8 +130,11 @@ public class SquadSolver {
 				
 			}
 			
-			objective.setCoefficient(x, p.composite);
-			
+			if (squadData.inSquad(p.id)) {
+				objective.setCoefficient(x, p.composite);
+			} else {
+				objective.setCoefficient(x, p.composite-4);
+			}			
 		}
 		
 		objective.setMaximization();

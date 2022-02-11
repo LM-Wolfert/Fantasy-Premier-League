@@ -1,6 +1,6 @@
 package me.laurens.FPL.optimisation;
 
-public class PlayerValue {
+public class PlayerValueInitial {
 	
 	public int id;
 	
@@ -10,7 +10,7 @@ public class PlayerValue {
 	
 	public double composite;
 	
-	public PlayerValue(int id, int position, int team, double cost, double ict_comp, double form_comp, double history_comp, double points_comp, double minutes_comp) {
+	public PlayerValueInitial(int id, int position, int team, double cost, double ict_comp, double form_comp, double history_comp, double points_comp, double minutes_comp) {
 		
 		this.id = id;
 		
