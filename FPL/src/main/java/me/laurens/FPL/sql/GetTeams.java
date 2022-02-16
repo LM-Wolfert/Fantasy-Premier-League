@@ -50,10 +50,11 @@ public class GetTeams {
 
 		clearDatabase();
 
-		for (Team t : teams.teams) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO teams(code, id, name, strength) VALUES(?, ?, ?, ?);")) {
 
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO teams(code, id, name, strength) VALUES(?, ?, ?, ?);")) {
+			for (Team t : teams.teams) {
+
 				statement.setInt(1, Integer.parseInt(t.code));
 				statement.setInt(2, Integer.parseInt(t.id));
 				statement.setString(3, t.name);
@@ -61,12 +62,12 @@ public class GetTeams {
 
 				statement.executeUpdate();
 
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		
+
 		System.out.println("Updated Teams Table");
 
 	}
@@ -81,20 +82,22 @@ public class GetTeams {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public ArrayList<Integer> getTeamIDs() {
-		
+
 		ArrayList<Integer> teams = new ArrayList<Integer>();
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT code FROM teams;")) {
 
-			ResultSet results = statement.executeQuery();
-			
-			while (results.next()) {
-				teams.add(results.getInt(1));
+			try (ResultSet results = statement.executeQuery()) {
+
+				while (results.next()) {
+					teams.add(results.getInt(1));
+				}
+
+				return teams;
+
 			}
-			
-			return teams;
 
 		} catch (SQLException e) {
 			e.printStackTrace();

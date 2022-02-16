@@ -51,10 +51,11 @@ public class GetPlayers {
 
 		clearDatabase();
 
-		for (Player p : elements.elements) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO players(id, name, playChance_next, position, form, value_form, value_season, team_code, total_points, point_per_game, ep_next, cost, ict_index_rank, ict_index, minutes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
 
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO players(id, name, playChance_next, position, form, value_form, value_season, team_code, total_points, point_per_game, ep_next, cost, ict_index_rank, ict_index, minutes) VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);")) {
+			for (Player p : elements.elements) {
+
 				statement.setInt(1, Integer.parseInt(p.id));
 				statement.setString(2, p.web_name);
 				if (p.chance_of_playing_next_round ==  null) {
@@ -77,10 +78,10 @@ public class GetPlayers {
 
 				statement.executeUpdate();
 
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
 
 		System.out.println("Updated Players Table");
@@ -105,13 +106,15 @@ public class GetPlayers {
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT id FROM players;")) {
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			while (results.next()) {
-				players.add(results.getInt(1));
+				while (results.next()) {
+					players.add(results.getInt(1));
+				}
+
+				return players;
+
 			}
-
-			return players;
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -125,11 +128,13 @@ public class GetPlayers {
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT ict_index FROM players ORDER BY ict_index DESC;")) {
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return results.getDouble(1);
+				return results.getDouble(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -142,11 +147,13 @@ public class GetPlayers {
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT form FROM players ORDER BY form DESC;")) {
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return results.getDouble(1);
+				return results.getDouble(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -160,11 +167,13 @@ public class GetPlayers {
 				"SELECT ict_index FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getDouble(1)/max_ict);
+				return (results.getDouble(1)/max_ict);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -178,11 +187,13 @@ public class GetPlayers {
 				"SELECT form FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getDouble(1)/max_form);
+				return (results.getDouble(1)/max_form);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -196,11 +207,13 @@ public class GetPlayers {
 				"SELECT position FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getInt(1));
+				return (results.getInt(1));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -214,11 +227,13 @@ public class GetPlayers {
 				"SELECT team_code FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getInt(1));
+				return (results.getInt(1));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -232,11 +247,13 @@ public class GetPlayers {
 				"SELECT cost FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getInt(1));
+				return (results.getInt(1));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
@@ -249,24 +266,29 @@ public class GetPlayers {
 		String[] names = new String[playerIDs.length];
 		int counter = 0;
 
-		for (int i : playerIDs) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT name FROM players WHERE id=?;")) {
 
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"SELECT name FROM players WHERE id=?;")) {
+			for (int i : playerIDs) {
+
 				statement.setInt(1, i);
 
-				ResultSet results = statement.executeQuery();
+				try (ResultSet results = statement.executeQuery()) {
 
-				results.next();
+					results.next();
 
-				names[counter] = results.getString(1);
-				counter++;
+					names[counter] = results.getString(1);
+					counter++;
 
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return names;
+					results.close();
+
+				}
+
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return names;
 		}
 
 		return names;
@@ -278,38 +300,43 @@ public class GetPlayers {
 		int[] teams = new int[playerIDs.length];
 		int counter = 0;
 
-		for (int i : playerIDs) {
 
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"SELECT team_code FROM players WHERE id=?;")) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT team_code FROM players WHERE id=?;")) {
+
+			for (int i : playerIDs) {
+
 				statement.setInt(1, i);
 
-				ResultSet results = statement.executeQuery();
+				try (ResultSet results = statement.executeQuery()) {
 
-				results.next();
+					results.next();
 
-				teams[counter] = results.getInt(1);
-				counter++;
+					teams[counter] = results.getInt(1);
+					counter++;
 
-			} catch (SQLException e) {
-				e.printStackTrace();
-				return teams;
+					results.close();
+
+				}
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return teams;
 		}
 
 		return teams;
 
 	}
-	
+
 	public int[] sortByPosition(int[] squad) {
-		
+
 		int[] sortedSquad = new int[15];
-		
+
 		for (int i = 0; i < 15; i++) {
-			
+
 			for (int j = 0; j < 15; j++) {
-				
+
 				if (squad[j] != 0) {
 
 					if (i <= 1) {
@@ -346,106 +373,118 @@ public class GetPlayers {
 		}
 		return sortedSquad;		
 	}
-	
+
 	public double maxPoints() {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT point_per_game FROM players ORDER BY point_per_game DESC;")) {
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return results.getDouble(1);
+				return results.getDouble(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double maxMinutes() {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT minutes FROM players ORDER BY minutes DESC;")) {
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return results.getDouble(1);
+				return results.getDouble(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double getPointsComp(int id, double max_points) {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT point_per_game FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getDouble(1)/max_points);
+				return (results.getDouble(1)/max_points);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double getMinutesComp(int id, double max_minutes) {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT minutes FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getDouble(1)/max_minutes);
+				return (results.getDouble(1)/max_minutes);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double getEp(int id) {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT ep_next FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getDouble(1));
+				return (results.getDouble(1));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public int getPlayChance(int id) {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT playChance_next FROM players WHERE id=?;")) {
 			statement.setInt(1, id);
 
-			ResultSet results = statement.executeQuery();
+			try (ResultSet results = statement.executeQuery()) {
 
-			results.next();
+				results.next();
 
-			return (results.getInt(1));
+				return (results.getInt(1));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();

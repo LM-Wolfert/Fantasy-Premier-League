@@ -16,7 +16,7 @@ import me.laurens.FPL.Utils.Events;
 import me.laurens.FPL.Utils.Gameweek;
 
 public class GetGameweeks {
-	
+
 	String path;
 	DataSource dataSource;
 	Events events;
@@ -49,10 +49,12 @@ public class GetGameweeks {
 
 		clearDatabase();
 
-		for (Gameweek gw : events.events) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO gameweeks(id, deadline, is_current, is_next) VALUES(?, ?, ?, ?);")) {
 
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO gameweeks(id, deadline, is_current, is_next) VALUES(?, ?, ?, ?);")) {
+			for (Gameweek gw : events.events) {
+
+
 				statement.setInt(1, Integer.parseInt(gw.id));
 				statement.setLong(2, Long.parseLong(gw.deadline_time_epoch));
 				statement.setBoolean(3, Boolean.parseBoolean(gw.is_current));
@@ -60,12 +62,12 @@ public class GetGameweeks {
 
 				statement.executeUpdate();
 
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		
+
 		System.out.println("Updated Gameweeks Table");
 
 	}

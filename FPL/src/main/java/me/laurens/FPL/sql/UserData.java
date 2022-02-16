@@ -23,7 +23,18 @@ public class UserData {
 
 	public void updateDatabase() {
 
-		clearDatabase();
+		if (exists()) {
+			
+			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+					"UPDATE user_data SET last_update=?;")) {
+				statement.setLong(1, Time.currentTime());
+				statement.executeUpdate();
+
+			} catch (SQLException e) {
+				e.printStackTrace();
+			}
+			
+		} else {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"INSERT INTO user_data(last_update, money_remaining) VALUES(?,?);")) {
@@ -34,7 +45,27 @@ public class UserData {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
+		
+		}
 
+	}
+	
+	public boolean exists() {
+		
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT last_update FROM user_data;")) {
+			
+			try (ResultSet results = statement.executeQuery()) {
+				
+				return results.next();
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return false;
+		}
+		
 	}
 
 	public void clearDatabase() {
@@ -52,12 +83,14 @@ public class UserData {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT last_update FROM user_data;")) {
-			ResultSet results = statement.executeQuery();
 
-			if (results.next()) {
-				return results.getLong(1);
-			} else {
-				return 0;
+			try (ResultSet results = statement.executeQuery()) {
+
+				if (results.next()) {
+					return results.getLong(1);
+				} else {
+					return 0;
+				}
 			}
 
 		} catch (SQLException e) {
@@ -83,12 +116,15 @@ public class UserData {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT money_remaining FROM user_data;")) {
-			
-			ResultSet results = statement.executeQuery();
-			results.next();
-			
-			return results.getInt(1);
-			
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				results.next();
+
+				return results.getInt(1);
+
+			}
+
 
 		} catch (SQLException e) {
 			e.printStackTrace();

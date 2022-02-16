@@ -94,7 +94,8 @@ public class SquadUpdate {
 		solver.makeConstraint(3, 3, "pos4");
 		
 		//Make cost constraint.
-		cost = solver.makeConstraint(0, squadData.sellValues() + userData.getMoneyRemaining(), "cost");
+		int money = squadData.sellValues() + userData.getMoneyRemaining();
+		cost = solver.makeConstraint(0, money, "cost");
 		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		
 		for (PlayerValueCurrent p : players) {

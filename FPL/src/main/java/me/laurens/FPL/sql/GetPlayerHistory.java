@@ -23,7 +23,7 @@ public class GetPlayerHistory {
 	HistoryPast historyPast;
 	JsonReader jsonReader;
 	Gson gson;
-	
+
 	GetPlayers getPlayers;
 
 	public GetPlayerHistory(DataSource dataSource, GetPlayers getPlayers) {
@@ -35,7 +35,7 @@ public class GetPlayerHistory {
 	private Connection conn() throws SQLException {
 		return dataSource.getConnection();
 	}
-	
+
 	public void update() {
 		ArrayList<Integer> players = getPlayers.getPlayers();
 		gson = new Gson();
@@ -50,7 +50,7 @@ public class GetPlayerHistory {
 			updateDatabase(p);
 
 		}
-		
+
 		System.out.println("Updated Player History Table");
 	}
 
@@ -71,11 +71,11 @@ public class GetPlayerHistory {
 
 		clearDatabase(code);
 		readJson();
-		
+
 		if (historyPast == null) {
 			return;
 		}
-		
+
 		for (PlayerHistory h : historyPast.history_past) {
 			if (h.season_name.equals("2020/21")) {
 				try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
@@ -92,7 +92,7 @@ public class GetPlayerHistory {
 				} catch (SQLException e) {
 					e.printStackTrace();
 				}
-				
+
 				break;
 			}
 		}
@@ -108,93 +108,102 @@ public class GetPlayerHistory {
 			e.printStackTrace();
 		}
 	}
-	
+
 	public boolean hasHistory(int id) {
-		
+
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT id FROM player_history WHERE id=?;")) {
 			statement.setInt(1, id);
-			
-			ResultSet results = statement.executeQuery();
-			
-			return results.next();
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				return results.next();
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
 		}
-		
-		
+
+
 	}
-	
+
 	public int maxPoints() {
-		
+
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT total_points FROM player_history ORDER BY total_points DESC;")) {
-			
-			ResultSet results = statement.executeQuery();
-		
-			results.next();
-			
-			return results.getInt(1);
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				results.next();
+				return results.getInt(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double maxIct() {
-		
+
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT ict_index FROM player_history ORDER BY ict_index DESC;")) {
-			
-			ResultSet results = statement.executeQuery();
-		
-			results.next();
-			
-			return results.getDouble(1);
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				results.next();
+
+				return results.getDouble(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public int maxMinutes() {
-		
+
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT minutes FROM player_history ORDER BY minutes DESC;")) {
-			
-			ResultSet results = statement.executeQuery();
-		
-			results.next();
-			
-			return results.getInt(1);
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				results.next();
+
+				return results.getInt(1);
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
 	}
-	
+
 	public double getComp(int id, double max_points, double max_ict, double max_minutes) {
-		
+
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
 				"SELECT total_points, ict_index, minutes FROM player_history WHERE id=?;")) {
 			statement.setInt(1, id);
-			
-			ResultSet results = statement.executeQuery();
-		
-			results.next();
-			
-			return ((results.getInt("total_points")/max_points) + (results.getDouble("ict_index")/max_ict) + (results.getInt("minutes")/max_minutes));
+
+			try (ResultSet results = statement.executeQuery()) {
+
+				results.next();
+
+				return ((results.getInt("total_points")/max_points) + (results.getDouble("ict_index")/max_ict) + (results.getInt("minutes")/max_minutes));
+
+			}
 
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return 0;
 		}
-		
+
 	}
 
 }

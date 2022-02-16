@@ -102,10 +102,26 @@ public class TeamSelection {
 		
 		for (int i = 0; i < 11; i++) {
 			
-			sum += players[i].composite;
+			sum += getComposite(team[i]);
 			
 		}
 		
 		return (sum+modifier);
+	}
+	
+	private double getComposite(int id) {
+		
+		for (int i = 0; i < 15; i++) {
+			
+			if (players[i].id == id) {
+				
+				return players[i].composite;
+				
+			}
+			
+		}
+		
+		return 0;	
+		
 	}
 }

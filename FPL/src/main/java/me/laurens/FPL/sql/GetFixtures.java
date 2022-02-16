@@ -17,7 +17,7 @@ import com.google.gson.reflect.TypeToken;
 import me.laurens.FPL.Utils.Fixture;
 
 public class GetFixtures {
-	
+
 	String path;
 	DataSource dataSource;
 	List<Fixture> fixtures;
@@ -50,14 +50,15 @@ public class GetFixtures {
 
 		clearDatabase();
 
-		for (Fixture f : fixtures) {
-			
-			if (f.event == null) {
-				continue;
-			}
-			
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO fixtures(event, id, away, home) VALUES(?, ?, ?, ?);")) {
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"INSERT INTO fixtures(event, id, away, home) VALUES(?, ?, ?, ?);")) {
+
+			for (Fixture f : fixtures) {
+
+				if (f.event == null) {
+					continue;
+				}
+
 				statement.setInt(1, Integer.parseInt(f.event));
 				statement.setInt(2, Integer.parseInt(f.id));
 				statement.setInt(3, Integer.parseInt(f.team_a));
@@ -65,12 +66,12 @@ public class GetFixtures {
 
 				statement.executeUpdate();
 
-			} catch (SQLException e) {
-				e.printStackTrace();
 			}
 
+		} catch (SQLException e) {
+			e.printStackTrace();
 		}
-		
+
 		System.out.println("Updated Fixtures Table");
 
 	}
