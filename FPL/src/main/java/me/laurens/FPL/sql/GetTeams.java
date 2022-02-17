@@ -19,7 +19,7 @@ import me.laurens.FPL.Utils.Teams;
 
 public class GetTeams {
 	String path;
-	DataSource dataSource;
+	private DataSource dataSource;
 	Teams teams;
 
 	public GetTeams(String path, DataSource dataSource) {

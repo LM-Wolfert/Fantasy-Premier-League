@@ -10,8 +10,8 @@ import javax.sql.DataSource;
 
 public class SquadData {
 
-	DataSource dataSource;
-	GetPlayers getPlayers;
+	private DataSource dataSource;
+	private GetPlayers getPlayers;
 
 	public SquadData(DataSource dataSource, GetPlayers getPlayers) {
 		this.dataSource = dataSource;

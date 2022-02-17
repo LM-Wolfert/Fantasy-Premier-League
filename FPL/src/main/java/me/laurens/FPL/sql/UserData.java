@@ -11,7 +11,7 @@ import me.laurens.FPL.Utils.Time;
 
 public class UserData {
 
-	DataSource dataSource;
+	private DataSource dataSource;
 
 	public UserData(DataSource dataSource) {
 		this.dataSource = dataSource;

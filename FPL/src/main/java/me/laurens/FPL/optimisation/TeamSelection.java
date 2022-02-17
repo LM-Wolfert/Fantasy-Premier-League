@@ -30,47 +30,61 @@ public class TeamSelection {
 		team = new int[11];
 		bench = new int[4];
 
-		int val = 0;
-		//Start at positin 2 since the first is reserved for 2nd goalkeeper.
-		int val2 = 1;
-		//To check whether the goalkeeper has already been selected.
-		boolean goalKeeper = false;
+		//Count values
+		int teamCount = 0;
+		int benchCount = 1;
+		
+		//Need at least 1;
+		boolean goalkeeper = false;
+		boolean forward = false;
+		
+		//Need at least 3;
+		int defender = 0;
+		
+		//Other players allowed.
+		int other = 6;
 
 		//Iterate through squad.
 		for (PlayerValueCurrent p : players) {
-
-			//If a goalkeeper is already in the team, add them to the bench.
-			if (goalKeeper && p.position == 1) {
-
-				bench[0] = p.id;
-				continue;
-
+			
+			//If player is goalkeeper and we have no goalkeepers add them to the team.
+			if (p.position == 1 && goalkeeper == false) {
+				goalkeeper = true;
+				team[teamCount] = p.id;
+				teamCount++;
 			}
-
-			//If the team has less than 11 players add one.
-			if (val < 11) {
-
-				//If they are a goalkeeper set the value to true.
-				if (p.position == 1) {
-					goalKeeper = true;
-				}
-				
-				if (!goalKeeper && val == 10) {
-					bench[val2] = p.id;
-					val2++;
-					continue;
-				}
-				
-				team[val] = p.id;
-
-				val++;
-			} else {
-
-				//else add them to the bench.
-				bench[val2] = p.id;
-				val2++;
-
-			} 		
+			
+			//If player is forward and we have no forwards add them to the team.
+			else if (p.position == 4 && forward == false) {
+				forward = true;
+				team[teamCount] = p.id;
+				teamCount++;
+			}
+			
+			//If player is defender and we have less than 3 defenders add them to the team.
+			else if (p.position == 2 && defender < 3) {
+				defender++;
+				team[teamCount] = p.id;
+				teamCount++;
+			}
+			
+			//If player is a goalkeeper, and we already have a goalkeeper, add them to the bench.
+			else if (p.position == 1 && goalkeeper) {
+				bench[0] = p.id;
+			}
+			
+			//If other players are still allowed add them to the team.
+			else if (other > 0) {
+				other--;
+				team[teamCount] = p.id;
+				teamCount++;	
+			}
+			
+			//Anyone left at the end is added to the bench.
+			else {
+				bench[benchCount] = p.id;
+				benchCount++;	
+			}			
 		}		
 	}
 
@@ -83,7 +97,7 @@ public class TeamSelection {
 
 		for (int i = 0; i < 11; i++) {
 
-			System.out.println(teamNames[i]);
+			System.out.println(teamNames[i] + ", expected points: " + getPlayers.getEp(team[i]));
 
 		}
 
@@ -91,7 +105,7 @@ public class TeamSelection {
 
 		for (int i = 0; i < 4; i++) {
 
-			System.out.println(benchNames[i]);
+			System.out.println(benchNames[i] + ", expected points: " + getPlayers.getEp(bench[i]));
 
 		}
 	}

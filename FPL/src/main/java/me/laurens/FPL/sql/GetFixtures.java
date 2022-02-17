@@ -19,7 +19,7 @@ import me.laurens.FPL.Utils.Fixture;
 public class GetFixtures {
 
 	String path;
-	DataSource dataSource;
+	private DataSource dataSource;
 	List<Fixture> fixtures;
 
 	public GetFixtures(String path, DataSource dataSource) {

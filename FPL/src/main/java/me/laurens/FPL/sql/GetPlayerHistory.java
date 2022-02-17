@@ -19,12 +19,12 @@ import me.laurens.FPL.api.JsonReader;
 
 public class GetPlayerHistory {
 
-	DataSource dataSource;
+	private DataSource dataSource;
 	HistoryPast historyPast;
 	JsonReader jsonReader;
 	Gson gson;
 
-	GetPlayers getPlayers;
+	private GetPlayers getPlayers;
 
 	public GetPlayerHistory(DataSource dataSource, GetPlayers getPlayers) {
 		this.dataSource = dataSource;

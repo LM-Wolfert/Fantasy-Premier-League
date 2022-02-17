@@ -491,4 +491,22 @@ public class GetPlayers {
 			return 0;
 		}
 	}
+	
+	public double getAveragePoints(int id) {
+		
+		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
+				"SELECT point_per_game FROM players WHERE id=?")) {
+			statement.setInt(1, id);
+			
+			try (ResultSet results = statement.executeQuery()) {
+				
+				results.next();
+				
+				return (results.getDouble(1));
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+	}
 }

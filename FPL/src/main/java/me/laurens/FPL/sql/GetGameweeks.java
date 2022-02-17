@@ -18,7 +18,7 @@ import me.laurens.FPL.Utils.Gameweek;
 public class GetGameweeks {
 
 	String path;
-	DataSource dataSource;
+	private DataSource dataSource;
 	Events events;
 
 	public GetGameweeks(String path, DataSource dataSource) {
