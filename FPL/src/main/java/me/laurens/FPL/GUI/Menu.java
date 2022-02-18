@@ -32,6 +32,7 @@ import me.laurens.FPL.sql.GetGameweeks;
 import me.laurens.FPL.sql.GetPlayerHistory;
 import me.laurens.FPL.sql.GetPlayers;
 import me.laurens.FPL.sql.GetTeams;
+import me.laurens.FPL.sql.PastFixturesSQL;
 import me.laurens.FPL.sql.SquadData;
 import me.laurens.FPL.sql.UserData;
 
@@ -49,6 +50,8 @@ public class Menu {
 	private JButton testSquadButton;
 	private JButton getTeamButton;
 	private JButton updateDatabaseButton;
+	private JButton updatePlayerHistoryButton;
+	private JButton updatePastFixturesButton;
 
 	private ImageIcon pitchIcon;
 	private ImageIcon icon;
@@ -62,7 +65,7 @@ public class Menu {
 
 	private SquadData squadData;
 
-	public Menu(GetPlayers getPlayers, GetTeams getTeams, GetGameweeks getGameweeks, GetFixtures getFixtures, GetPlayerHistory getPlayerHistory, UserData userData, SquadData squadData) {
+	public Menu(GetPlayers getPlayers, GetTeams getTeams, GetGameweeks getGameweeks, GetFixtures getFixtures, GetPlayerHistory getPlayerHistory, UserData userData, SquadData squadData, PastFixturesSQL pastFixturesSQL) {
 
 		this.squadData = squadData;
 
@@ -591,14 +594,37 @@ public class Menu {
 				getFixtures.readJson();
 				getFixtures.updateDatabase();
 
-				getPlayerHistory.update();
-
 				userData.updateDatabase();		
 				databaseLabel.setText("Last updated database at " + Time.getDate(userData.getTime()));
 			}
 		});
 		updateDatabaseButton.setBounds(0, 48, 196, 48);
 		desktopPane.add(updateDatabaseButton);
+		
+		updatePlayerHistoryButton = new JButton("Update Player History");
+		updatePlayerHistoryButton.setFont(new Font("Serif", Font.BOLD, 16));
+		updatePlayerHistoryButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				getPlayerHistory.update();
+				
+			}
+		});
+		updatePlayerHistoryButton.setBounds(0, 96, 196, 48);
+		desktopPane.add(updatePlayerHistoryButton);
+		
+		updatePastFixturesButton = new JButton("Update Past Fixtures");
+		updatePastFixturesButton.setFont(new Font("Serif", Font.BOLD, 16));
+		updatePastFixturesButton.addActionListener(new ActionListener() {
+			public void actionPerformed(ActionEvent e) {
+				
+				ArrayList<Integer> players = getPlayers.getTrimmedPlayers();
+				pastFixturesSQL.getPastFixtures(players);
+				
+			}
+		});
+		updatePastFixturesButton.setBounds(0, 144, 196, 48);
+		desktopPane.add(updatePastFixturesButton);
 
 		infoPanel = new JPanel();
 		infoPanel.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));

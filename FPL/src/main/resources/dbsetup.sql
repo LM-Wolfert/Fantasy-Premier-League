@@ -71,3 +71,14 @@ CREATE TABLE IF NOT EXISTS squad_data
 	purchase_price	DOUBLE		NOT NULL,
 	PRIMARY KEY(position)
 );
+
+CREATE TABLE IF NOT EXISTS past_fixtures
+(
+	id		INT		NOT NULL,
+	fixture		INT		NOT NULL,
+	opponent	INT		NOT NULL,
+	points		INT		NOT NULL,
+	round		INT		NOT NULL,
+	minutes		INT		NOT NULL,
+	PRIMARY KEY(id,fixture)
+);

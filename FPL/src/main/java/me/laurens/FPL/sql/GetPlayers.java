@@ -509,4 +509,49 @@ public class GetPlayers {
 			return 0;
 		}
 	}
+	
+	public int getInt(String sql) {
+		
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(sql);
+				ResultSet results = statement.executeQuery()) {
+			
+			if (results.next()) {
+				
+				return results.getInt(1);
+				
+			} else {
+				
+				return 0;
+				
+			}		
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;			
+		}		
+	}
+	
+	public ArrayList<Integer> getTrimmedPlayers() {
+		
+		ArrayList<Integer> players = new ArrayList<>();
+		
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE playChance_next>0 AND ep_next>2.5;");
+				ResultSet results = statement.executeQuery()) {
+			
+			while (results.next()) {
+				
+				players.add(results.getInt(1));
+				
+			}
+			
+			return players;
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return players;
+		}
+		
+	}
 }

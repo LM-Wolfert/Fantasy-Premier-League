@@ -17,6 +17,7 @@ import com.google.gson.JsonObject;
 import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
 import com.mysql.cj.jdbc.MysqlDataSource;
 
+import me.laurens.FPL.GUI.Menu;
 import me.laurens.FPL.Utils.Config;
 import me.laurens.FPL.api.JsonReader;
 import me.laurens.FPL.api.writeJson;
@@ -25,9 +26,9 @@ import me.laurens.FPL.sql.GetGameweeks;
 import me.laurens.FPL.sql.GetPlayerHistory;
 import me.laurens.FPL.sql.GetPlayers;
 import me.laurens.FPL.sql.GetTeams;
+import me.laurens.FPL.sql.PastFixturesSQL;
 import me.laurens.FPL.sql.SquadData;
 import me.laurens.FPL.sql.UserData;
-import me.laurens.FPL.GUI.Menu;
 
 public class Main {
 
@@ -69,6 +70,7 @@ public class Main {
 		GetPlayerHistory getPlayerHistory = null;
 		UserData userData = null;
 		SquadData squadData = null;
+		PastFixturesSQL pastFixturesSQL = null;
 		
 		try {
 			dataSource = mysqlSetup(config);
@@ -81,13 +83,24 @@ public class Main {
 			getPlayerHistory = new GetPlayerHistory(dataSource, getPlayers);
 			userData = new UserData(dataSource);
 			squadData = new SquadData(dataSource, getPlayers);
+			pastFixturesSQL = new PastFixturesSQL(dataSource);
 			
 		} catch (SQLException | IOException e) {
 			e.printStackTrace();
 		}	
 
+		//Get number of players at start and after trimming.
+		//This is for testing purposes.
+		//int players = getPlayers.getInt("SELECT COUNT(id) FROM players;");
+		
+		//int trimmedPlayers = getPlayers.getInt("SELECT COUNT(id) FROM players WHERE playChance_next>0 AND ep_next>2.5;");
+		
+		//System.out.println("Player Count = " + players);
+		//System.out.println("Trimmed Player Count = " + trimmedPlayers);
+		
+		
 		//Create GUI
-		Menu gui = new Menu(getPlayers, getTeams, getGameweeks, getFixtures, getPlayerHistory, userData, squadData);
+		Menu gui = new Menu(getPlayers, getTeams, getGameweeks, getFixtures, getPlayerHistory, userData, squadData, pastFixturesSQL);
 	}
 
 	//Creates the mysql connection.
