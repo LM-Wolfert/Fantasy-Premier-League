@@ -6,6 +6,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map.Entry;
 
 import javax.sql.DataSource;
 
@@ -114,4 +116,83 @@ public class PastFixturesSQL {
 		}
 	}
 
+	//Get expected points for player based on past performances,
+	//online count games where 60 or more minutes were played.
+	//Weigh games based on how long ago there happened.
+	public double getExpectedPoints(int id, int gameweek) {
+
+		HashMap<Integer, Integer> map = getIntHashMap("SELECT round,points FROM past_fixtures WHERE id=" + id + " AND minutes>=60 ORDER BY round DESC;");
+
+		double sum = 0;
+		double points = 0;
+
+		//Get sum of gameweek differences.
+		for (int round : map.keySet()) {
+
+			sum += 1.0/(gameweek - round);
+
+		}
+
+		//Get the weighted average of expected points.
+		for (Entry<Integer, Integer> entry : map.entrySet()) {
+
+			points += entry.getValue() * ((1.0/(gameweek - entry.getKey()))/sum);
+
+		}
+
+		return points;
+
+
+	}
+
+	public HashMap<Integer, Integer> getIntHashMap(String sql) {
+
+		HashMap<Integer, Integer> map = new HashMap<>();
+
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(sql);
+				ResultSet results = statement.executeQuery()) {
+
+			while (results.next()) {
+
+				map.put(results.getInt(1), results.getInt(2));
+
+			}
+
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return map;	
+
+	}
+
+	public double getExpectedMinutes(int id, int gameweek) {
+
+		HashMap<Integer, Integer> map = getIntHashMap("SELECT round,minutes FROM past_fixtures WHERE id=" + id + " ORDER BY round DESC;");
+
+		double sum = 0;
+		double minutes = 0;
+
+		//Get sum of gameweek differences.
+		for (int round : map.keySet()) {
+
+			sum += 1.0/(gameweek - round);
+
+		}
+
+		//Get the weighted average of expected points.
+		for (Entry<Integer, Integer> entry : map.entrySet()) {
+
+			minutes += entry.getValue() * ((1.0/(gameweek - entry.getKey()))/sum);
+
+		}
+
+		return minutes;
+
+
+
+
+	}
 }

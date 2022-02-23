@@ -537,7 +537,7 @@ public class GetPlayers {
 		ArrayList<Integer> players = new ArrayList<>();
 		
 		try (Connection conn = conn();
-				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE playChance_next>0 AND ep_next>2.5;");
+				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE playChance_next>0 AND ep_next>1;");
 				ResultSet results = statement.executeQuery()) {
 			
 			while (results.next()) {
@@ -552,6 +552,29 @@ public class GetPlayers {
 			e.printStackTrace();
 			return players;
 		}
+		
+	}
+	
+	public String getString(String sql) {
+		
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(sql);
+				ResultSet results = statement.executeQuery()) {
+			
+			if (results.next()) {
+				
+				return results.getString(1);
+				
+			} else {
+				
+				return null;
+				
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return null;
+		}
+		
 		
 	}
 }

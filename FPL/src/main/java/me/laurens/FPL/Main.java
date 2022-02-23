@@ -98,6 +98,16 @@ public class Main {
 		//System.out.println("Player Count = " + players);
 		//System.out.println("Trimmed Player Count = " + trimmedPlayers);
 		
+		double points;
+		double minutes;
+		for (int i : getPlayers.getTrimmedPlayers()) {
+			
+			minutes = pastFixturesSQL.getExpectedMinutes(i, 27);
+			points = pastFixturesSQL.getExpectedPoints(i, 27);
+			
+			System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points and expected minutes " + minutes + ".");
+		}
+		
 		
 		//Create GUI
 		Menu gui = new Menu(getPlayers, getTeams, getGameweeks, getFixtures, getPlayerHistory, userData, squadData, pastFixturesSQL);
