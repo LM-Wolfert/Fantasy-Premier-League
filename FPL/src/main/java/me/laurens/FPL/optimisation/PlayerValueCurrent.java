@@ -10,7 +10,7 @@ public int id;
 	
 	public double composite;
 	
-	public PlayerValueCurrent(int id, int position, int team, double cost, double ep_this, int play_chance) {
+	public PlayerValueCurrent(int id, int position, int team, double cost, double composite) {
 		
 		this.id = id;
 		
@@ -18,7 +18,7 @@ public int id;
 		this.team = team;
 		this.cost = cost;
 		
-		this.composite = ep_this * (play_chance/100.0);
+		this.composite = composite;
 		
 	}
 

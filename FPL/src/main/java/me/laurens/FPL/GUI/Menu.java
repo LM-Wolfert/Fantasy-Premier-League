@@ -65,7 +65,26 @@ public class Menu {
 
 	private SquadData squadData;
 
+	private double minutes;
+	private double points;
+	private double expPoints;
+
+	private int teamID;
+	private int teamStrength;
+	private ArrayList<Integer> opponentTeams;
+	private int strengthDiff;
+
+	private GetPlayers getPlayers;
+	private PastFixturesSQL pastFixturesSQL;
+	private GetTeams getTeams;
+	private GetFixtures getFixtures;
+
 	public Menu(GetPlayers getPlayers, GetTeams getTeams, GetGameweeks getGameweeks, GetFixtures getFixtures, GetPlayerHistory getPlayerHistory, UserData userData, SquadData squadData, PastFixturesSQL pastFixturesSQL) {
+
+		this.getPlayers = getPlayers;
+		this.getTeams = getTeams;
+		this.getFixtures = getFixtures;
+		this.pastFixturesSQL = pastFixturesSQL;
 
 		this.squadData = squadData;
 
@@ -183,10 +202,15 @@ public class Menu {
 				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
 				int id;
 
+				double points;
+
 				for (int i = 0; i < 15; i++) {
 
 					id = squadData.getId(i);
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+					points = expectedPoints(id, 27);
+					
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 				}
 
@@ -206,6 +230,8 @@ public class Menu {
 			public void actionPerformed(ActionEvent e) {
 
 				int id;
+				double points;
+
 				//Get the expected points for the current team;
 				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
 				int[] currentSquad = new int[15];
@@ -214,7 +240,10 @@ public class Menu {
 
 					id = squadData.getId(i);
 					currentSquad[i] = id;
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+					points = expectedPoints(id, 27);
+
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 				}
 
@@ -228,7 +257,9 @@ public class Menu {
 
 				for (int id1 : player_ids) {
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), getPlayers.getEp(id1), getPlayers.getPlayChance(id1)));					
+					points = expectedPoints(id1, 27);
+
+					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
 
 				}
 
@@ -255,7 +286,10 @@ public class Menu {
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+						points = expectedPoints(id, 27);
+
+						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 					}
 
@@ -326,6 +360,8 @@ public class Menu {
 			public void actionPerformed(ActionEvent e) {
 
 				int id;
+				double points;
+
 				//Get the expected points for the current team;
 				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
 				int[] currentSquad = new int[15];
@@ -334,7 +370,10 @@ public class Menu {
 
 					id = squadData.getId(i);
 					currentSquad[i] = id;
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+					points = expectedPoints(id, 27);
+
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 				}
 
@@ -348,7 +387,9 @@ public class Menu {
 
 				for (int id1 : player_ids) {
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), getPlayers.getEp(id1), getPlayers.getPlayChance(id1)));					
+					points = expectedPoints(id1, 27);
+
+					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
 
 				}
 
@@ -375,7 +416,10 @@ public class Menu {
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+						points = expectedPoints(id, 27);
+
+						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 					}
 
@@ -437,7 +481,7 @@ public class Menu {
 		});
 		updateSquadButtonW.setBounds(196, 96, 196, 48);
 		desktopPane.add(updateSquadButtonW);
-		
+
 		testSquadButton = new JButton("Update Current Squad - Test");
 		testSquadButton.setFont(new Font("Serif", Font.BOLD, 12));
 		testSquadButton.addActionListener(new ActionListener() {
@@ -449,12 +493,17 @@ public class Menu {
 				int[] currentSquad = new int[15];
 				int[] currentSquadW = new int[15];
 
+				double points;
+
 				for (int i = 0; i < 15; i++) {
 
 					id = squadData.getId(i);
 					currentSquad[i] = id;
 					currentSquadW[i] = id;
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+					points = expectedPoints(id, 27);
+
+					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 				}
 
@@ -465,11 +514,12 @@ public class Menu {
 				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
 
-				for (int id1 : player_ids) {
+				for (int id1 : getPlayers.getTrimmedPlayers()) {
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), getPlayers.getEp(id1), getPlayers.getPlayChance(id1)));					
+					points = expectedPoints(id1, 27);
+
+					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
 
 				}
 
@@ -498,7 +548,10 @@ public class Menu {
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), getPlayers.getEp(id), getPlayers.getPlayChance(id));
+
+						points = expectedPoints(id, 27);
+
+						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
 
 					}
 
@@ -552,7 +605,7 @@ public class Menu {
 						squadPoints += getPlayers.getAveragePoints(currentSquad[i]);
 
 					}
-					
+
 					System.out.println("Average expected points for squad: " + squadPoints);
 
 				}
@@ -569,7 +622,7 @@ public class Menu {
 						squadPointsW += getPlayers.getAveragePoints(currentSquadW[i]);
 
 					}
-					
+
 					System.out.println("Average expected points for squad: " + squadPointsW);
 
 				}
@@ -600,27 +653,27 @@ public class Menu {
 		});
 		updateDatabaseButton.setBounds(0, 48, 196, 48);
 		desktopPane.add(updateDatabaseButton);
-		
+
 		updatePlayerHistoryButton = new JButton("Update Player History");
 		updatePlayerHistoryButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updatePlayerHistoryButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 				getPlayerHistory.update();
-				
+
 			}
 		});
 		updatePlayerHistoryButton.setBounds(0, 96, 196, 48);
 		desktopPane.add(updatePlayerHistoryButton);
-		
+
 		updatePastFixturesButton = new JButton("Update Past Fixtures");
 		updatePastFixturesButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updatePastFixturesButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				
+
 				ArrayList<Integer> players = getPlayers.getTrimmedPlayers();
 				pastFixturesSQL.getPastFixtures(players);
-				
+
 			}
 		});
 		updatePastFixturesButton.setBounds(0, 144, 196, 48);
@@ -994,6 +1047,78 @@ public class Menu {
 
 			}
 		}
+	}
+
+	private double expectedPoints(int id, int gameweek) {
+
+		minutes = pastFixturesSQL.getExpectedMinutes(id, 27);
+		points = pastFixturesSQL.getExpectedPoints(id, 27);
+
+		if (minutes > 60) {
+			points *= getPlayers.getPlayChance(id)/100.0;
+		} else if (minutes > 45) {
+			points *= 0.75;
+			points *= getPlayers.getPlayChance(id)/100.0;
+		} else if (minutes > 30) {
+			points *= 0.5;
+			points *= getPlayers.getPlayChance(id)/100.0;
+		} else {
+			points *= 0;
+		}
+
+
+		//Get team strength of player.
+		teamID = getTeams.getInt("SELECT id FROM teams WHERE code=" + getPlayers.getTeam(id) + ";");
+		teamStrength = getTeams.getInt("SELECT strength FROM teams WHERE id=" + teamID + ";");
+
+		//Get opponent teams for all upcoming fixtures in gameweek.
+		opponentTeams = getFixtures.opponentTeams(teamID, gameweek);
+
+		expPoints = 0;
+
+		//If the team has no fixtures in the next gameweek, return 0 expected points.
+		if (opponentTeams.size() == 0) {
+
+			return expPoints;
+
+		}
+
+		//Iterate trough all fixtures and calculate expected points.
+		for (int i : opponentTeams) {
+
+			//Get the strength difference.
+			strengthDiff = teamStrength - i;
+
+			//Add multipliers for each strength difference.
+			//A strength difference of 1 is disregarded.
+			switch (strengthDiff) {
+
+			case -4:
+				expPoints += points * 0.4;
+				break;
+			case -3:
+				expPoints += points * 0.6;
+				break;
+			case -2:
+				expPoints += points * 0.8;
+				break;
+			case 2:
+				expPoints += points * 1.2;
+				break;
+			case 3:
+				expPoints += points * 1.4;
+				break;
+			case 4:
+				expPoints += points * 1.6;
+				break;
+			default:
+				expPoints += points;
+			}
+
+		}
+
+		return expPoints;		
+
 	}
 
 }

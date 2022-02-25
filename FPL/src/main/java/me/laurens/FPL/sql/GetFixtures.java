@@ -4,7 +4,9 @@ import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.sql.DataSource;
@@ -87,4 +89,33 @@ public class GetFixtures {
 		}
 	}
 
+	public ArrayList<Integer> opponentTeams(int teamID, int gameweek) {
+
+		ArrayList<Integer> list = new ArrayList<>();
+
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(
+						"SELECT away,home FROM fixtures WHERE event=" + gameweek + " AND (home=" + teamID + " OR away=" + teamID + ");");
+				ResultSet results = statement.executeQuery()) {
+
+			while (results.next()) {
+
+				if (results.getInt("away") == teamID) {
+
+					list.add(results.getInt("home"));
+
+				} else {
+
+					list.add(results.getInt("away"));
+
+				}
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
+		return list;
+
+	}
 }

@@ -88,16 +88,8 @@ public class Main {
 		} catch (SQLException | IOException e) {
 			e.printStackTrace();
 		}	
-
-		//Get number of players at start and after trimming.
-		//This is for testing purposes.
-		//int players = getPlayers.getInt("SELECT COUNT(id) FROM players;");
 		
-		//int trimmedPlayers = getPlayers.getInt("SELECT COUNT(id) FROM players WHERE playChance_next>0 AND ep_next>2.5;");
-		
-		//System.out.println("Player Count = " + players);
-		//System.out.println("Trimmed Player Count = " + trimmedPlayers);
-		
+		/*
 		double points;
 		double minutes;
 		for (int i : getPlayers.getTrimmedPlayers()) {
@@ -105,9 +97,23 @@ public class Main {
 			minutes = pastFixturesSQL.getExpectedMinutes(i, 27);
 			points = pastFixturesSQL.getExpectedPoints(i, 27);
 			
-			System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points and expected minutes " + minutes + ".");
+			if (minutes > 60) {
+				points *= getPlayers.getPlayChance(i)/100.0;
+				System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points.");
+			} else if (minutes > 45) {
+				points *= 0.75;
+				points *= getPlayers.getPlayChance(i)/100.0;
+				System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points.");
+			} else if (minutes > 30) {
+				points *= 0.5;
+				points *= getPlayers.getPlayChance(i)/100.0;
+				System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points.");
+			} else {
+				points *= 0;
+				System.out.println(getPlayers.getString("SELECT name FROM players WHERE id=" + i + ";") + " has " + points + " expected points.");
+			}
 		}
-		
+		*/
 		
 		//Create GUI
 		Menu gui = new Menu(getPlayers, getTeams, getGameweeks, getFixtures, getPlayerHistory, userData, squadData, pastFixturesSQL);

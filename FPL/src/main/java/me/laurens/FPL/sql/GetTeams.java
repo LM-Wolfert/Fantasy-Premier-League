@@ -104,5 +104,29 @@ public class GetTeams {
 			return teams;
 		}
 	}
+	
+	public int getInt(String sql) {
+		
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(sql);
+				ResultSet results = statement.executeQuery()) {
+			
+			if (results.next()) {
+				
+				return results.getInt(1);
+				
+			} else {
+				
+				return 0;
+				
+			}
+			
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
+		
+		
+	}
 
 }

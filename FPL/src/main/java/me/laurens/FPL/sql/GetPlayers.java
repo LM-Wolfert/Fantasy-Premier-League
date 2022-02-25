@@ -537,7 +537,7 @@ public class GetPlayers {
 		ArrayList<Integer> players = new ArrayList<>();
 		
 		try (Connection conn = conn();
-				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE playChance_next>0 AND ep_next>1;");
+				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE total_points>0 AND minutes>0;");
 				ResultSet results = statement.executeQuery()) {
 			
 			while (results.next()) {
