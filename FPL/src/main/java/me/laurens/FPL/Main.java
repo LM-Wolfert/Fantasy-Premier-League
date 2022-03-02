@@ -10,25 +10,16 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.util.stream.Collectors;
 
-import javax.sql.DataSource;
+import org.apache.commons.dbcp2.BasicDataSource;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
-import com.mysql.cj.jdbc.MysqlConnectionPoolDataSource;
-import com.mysql.cj.jdbc.MysqlDataSource;
 
 import me.laurens.FPL.GUI.Menu;
 import me.laurens.FPL.Utils.Config;
 import me.laurens.FPL.api.JsonReader;
 import me.laurens.FPL.api.writeJson;
-import me.laurens.FPL.sql.GetFixtures;
-import me.laurens.FPL.sql.GetGameweeks;
-import me.laurens.FPL.sql.GetPlayerHistory;
-import me.laurens.FPL.sql.GetPlayers;
-import me.laurens.FPL.sql.GetTeams;
-import me.laurens.FPL.sql.PastFixturesSQL;
-import me.laurens.FPL.sql.SquadData;
-import me.laurens.FPL.sql.UserData;
+import me.laurens.FPL.sql.FPLSQL;
 
 public class Main {
 
@@ -62,28 +53,14 @@ public class Main {
 		}	
 		
 		//Setup MySQL
-		DataSource dataSource = null;
-		GetPlayers getPlayers = null;
-		GetTeams getTeams = null;
-		GetFixtures getFixtures = null;
-		GetGameweeks getGameweeks = null;
-		GetPlayerHistory getPlayerHistory = null;
-		UserData userData = null;
-		SquadData squadData = null;
-		PastFixturesSQL pastFixturesSQL = null;
+		BasicDataSource dataSource = null;
+		FPLSQL fplSQL = null;
 		
 		try {
 			dataSource = mysqlSetup(config);
 			initDb(dataSource);
 
-			getPlayers = new GetPlayers(path, dataSource);
-			getTeams = new GetTeams(path, dataSource);
-			getGameweeks = new GetGameweeks(path, dataSource);			
-			getFixtures = new GetFixtures(path, dataSource);
-			getPlayerHistory = new GetPlayerHistory(dataSource, getPlayers);
-			userData = new UserData(dataSource);
-			squadData = new SquadData(dataSource, getPlayers);
-			pastFixturesSQL = new PastFixturesSQL(dataSource);
+			fplSQL = new FPLSQL(dataSource, path);
 			
 		} catch (SQLException | IOException e) {
 			e.printStackTrace();
@@ -116,26 +93,31 @@ public class Main {
 		*/
 		
 		//Create GUI
-		Menu gui = new Menu(getPlayers, getTeams, getGameweeks, getFixtures, getPlayerHistory, userData, squadData, pastFixturesSQL);
+		Menu gui = new Menu(fplSQL);
 	}
 
 	//Creates the mysql connection.
-	private static DataSource mysqlSetup(Config config) throws SQLException {
+	private static BasicDataSource mysqlSetup(Config config) throws SQLException {
 
-		MysqlDataSource dataSource = new MysqlConnectionPoolDataSource();
+		BasicDataSource dataSource = new BasicDataSource();
 
-		dataSource.setServerName(config.getValue("db.host"));
-		dataSource.setPortNumber(Integer.parseInt(config.getValue("db.port")));
-		dataSource.setDatabaseName("fantasy_premier_league");
-		dataSource.setUser(config.getValue("db.username"));
+		dataSource.setUrl("jdbc:mysql://" + config.getValue("db.host") + ":" + config.getValue("db.port") +  "/fantasy_premier_league");
+		//dataSource.setServerName(config.getValue("db.host"));
+		//dataSource.setPortNumber(Integer.parseInt(config.getValue("db.port")));
+		//dataSource.setDatabaseName("fantasy_premier_league");
+		dataSource.setUsername(config.getValue("db.username"));
 		dataSource.setPassword(config.getValue("db.password"));
+		
+		dataSource.setMinIdle(5);
+        dataSource.setMaxIdle(10);
+        dataSource.setMaxOpenPreparedStatements(100);
 
 		testDataSource(dataSource);
 		return dataSource;
 
 	}
 
-	private static void testDataSource(DataSource dataSource) throws SQLException{
+	private static void testDataSource(BasicDataSource dataSource) throws SQLException{
 		try (Connection connection = dataSource.getConnection()) {
 			if (!connection.isValid(1000)) {
 				throw new SQLException("Could not establish database connection.");
@@ -143,7 +125,7 @@ public class Main {
 		}
 	}
 
-	private static void initDb(DataSource dataSource) throws SQLException, IOException {
+	private static void initDb(BasicDataSource dataSource) throws SQLException, IOException {
 		// first lets read our setup file.
 		// This file contains statements to create our inital tables.
 		// it is located in the resources.

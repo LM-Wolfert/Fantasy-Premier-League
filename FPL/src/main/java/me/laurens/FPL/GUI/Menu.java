@@ -27,14 +27,7 @@ import me.laurens.FPL.optimisation.PlayerValueInitial;
 import me.laurens.FPL.optimisation.SquadSolver;
 import me.laurens.FPL.optimisation.SquadUpdate;
 import me.laurens.FPL.optimisation.TeamSelection;
-import me.laurens.FPL.sql.GetFixtures;
-import me.laurens.FPL.sql.GetGameweeks;
-import me.laurens.FPL.sql.GetPlayerHistory;
-import me.laurens.FPL.sql.GetPlayers;
-import me.laurens.FPL.sql.GetTeams;
-import me.laurens.FPL.sql.PastFixturesSQL;
-import me.laurens.FPL.sql.SquadData;
-import me.laurens.FPL.sql.UserData;
+import me.laurens.FPL.sql.FPLSQL;
 
 public class Menu {
 
@@ -63,8 +56,6 @@ public class Menu {
 	private int height;
 	private int width;
 
-	private SquadData squadData;
-
 	private double minutes;
 	private double points;
 	private double expPoints;
@@ -74,19 +65,11 @@ public class Menu {
 	private ArrayList<Integer> opponentTeams;
 	private int strengthDiff;
 
-	private GetPlayers getPlayers;
-	private PastFixturesSQL pastFixturesSQL;
-	private GetTeams getTeams;
-	private GetFixtures getFixtures;
+	private FPLSQL fplSQL;
 
-	public Menu(GetPlayers getPlayers, GetTeams getTeams, GetGameweeks getGameweeks, GetFixtures getFixtures, GetPlayerHistory getPlayerHistory, UserData userData, SquadData squadData, PastFixturesSQL pastFixturesSQL) {
+	public Menu(FPLSQL fplSQL) {
 
-		this.getPlayers = getPlayers;
-		this.getTeams = getTeams;
-		this.getFixtures = getFixtures;
-		this.pastFixturesSQL = pastFixturesSQL;
-
-		this.squadData = squadData;
+		this.fplSQL = fplSQL;
 
 		pitchIcon = new ImageIcon(getClass().getClassLoader().getResource("pitch.jpg"));
 
@@ -125,16 +108,16 @@ public class Menu {
 			public void actionPerformed(ActionEvent e) {
 
 				ArrayList<PlayerValueInitial> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+				ArrayList<Integer> player_ids = fplSQL.getPlayers();
+				
+				double max_ict = fplSQL.getDouble("SELECT ict_index FROM players ORDER BY ict_index DESC;");
+				double max_form = fplSQL.getDouble("SELECT form FROM players ORDER BY form DESC;");
+				double max_points = fplSQL.getDouble("SELECT point_per_game FROM players ORDER BY point_per_game DESC;");
+				double max_minutes = fplSQL.getDouble("SELECT minutes FROM players ORDER BY minutes DESC;");
 
-				double max_ict = getPlayers.maxIct();
-				double max_form = getPlayers.maxForm();
-				double max_points = getPlayers.maxPoints();
-				double max_minutes = getPlayers.maxMinutes();
-
-				double hist_max_points = getPlayerHistory.maxPoints();
-				double hist_max_ict = getPlayerHistory.maxIct();
-				double hist_max_minutes = getPlayerHistory.maxMinutes();
+				double hist_max_points = fplSQL.getDouble("SELECT total_points FROM player_history ORDER BY total_points DESC;");
+				double hist_max_ict = fplSQL.getDouble("SELECT ict_index FROM player_history ORDER BY ict_index DESC;");
+				double hist_max_minutes = fplSQL.getDouble("SELECT minutes FROM player_history ORDER BY minutes DESC;");
 
 				double history;
 				double ict_comp;
@@ -144,9 +127,9 @@ public class Menu {
 
 				for (int id : player_ids) {
 
-					if (getPlayerHistory.hasHistory(id)) {
+					if (fplSQL.hasHistory(id)) {
 
-						history = getPlayerHistory.getComp(id, hist_max_points, hist_max_ict, hist_max_minutes);
+						history = fplSQL.getCompHistory(id, hist_max_points, hist_max_ict, hist_max_minutes);
 
 					} else {
 
@@ -154,27 +137,27 @@ public class Menu {
 
 					}
 
-					ict_comp = getPlayers.getIctComp(id, max_ict);
-					form_comp = getPlayers.getFormComp(id, max_form);
-					points_comp = getPlayers.getPointsComp(id, max_points);
-					minutes_comp = getPlayers.getMinutesComp(id, max_minutes);
+					ict_comp = fplSQL.getIctComp(id, max_ict);
+					form_comp = fplSQL.getFormComp(id, max_form);
+					points_comp = fplSQL.getPointsComp(id, max_points);
+					minutes_comp = fplSQL.getMinutesComp(id, max_minutes);
 
-					list.add(new PlayerValueInitial(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), ict_comp, form_comp, history, points_comp, minutes_comp));					
+					list.add(new PlayerValueInitial(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), ict_comp, form_comp, history, points_comp, minutes_comp));					
 
 				}
 
-				ArrayList<Integer> teams = getTeams.getTeamIDs();
+				ArrayList<Integer> teams = fplSQL.getTeamIDs();
 
 				SquadSolver solver = new SquadSolver(list, teams);
 				solver.setup();
 				solver.solve();
 
 				int[] squad = solver.squad;
-				squad = getPlayers.sortByPosition(squad);
-				String[] names = getPlayers.getNames(squad);
+				squad = fplSQL.sortByPosition(squad);
+				String[] names = fplSQL.getNames(squad);
 
 				for (int i = 0; i < 15; i++) {
-					squadData.setPosition(i, squad[i], names[i], getPlayers.getCost(squad[i]));
+					fplSQL.setPosition(i, squad[i], names[i], fplSQL.getCost(squad[i]));
 				}
 
 				showSquad();
@@ -185,7 +168,7 @@ public class Menu {
 		getSquadButton.setBounds(0, 0, 196, 48);
 		desktopPane.add(getSquadButton);
 
-		if (squadData.hasSquad()) {
+		if (fplSQL.hasSquad()) {
 			showSquad();
 		}
 
@@ -194,7 +177,7 @@ public class Menu {
 		getTeamButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				if (!squadData.hasSquad()) {
+				if (!fplSQL.hasSquad()) {
 					System.out.println("No squad found, please create an initial squad first.");
 					return;
 				}
@@ -206,15 +189,15 @@ public class Menu {
 
 				for (int i = 0; i < 15; i++) {
 
-					id = squadData.getId(i);
+					id = fplSQL.getId(i);
 
-					points = expectedPoints(id, 27);
+					points = expectedPoints(id, 28);
 					
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 				}
 
-				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
 
 				teamSelection.show();
@@ -238,34 +221,34 @@ public class Menu {
 
 				for (int i = 0; i < 15; i++) {
 
-					id = squadData.getId(i);
+					id = fplSQL.getId(i);
 					currentSquad[i] = id;
 
-					points = expectedPoints(id, 27);
+					points = expectedPoints(id, 28);
 
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 				}
 
-				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
 				double expectedPointsCurrent = teamSelection.expectedPoints(0);
 				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+				ArrayList<Integer> player_ids = fplSQL.getPlayers();
 
 				for (int id1 : player_ids) {
 
-					points = expectedPoints(id1, 27);
+					points = expectedPoints(id1, 28);
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
+					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
 				}
 
-				ArrayList<Integer> teams = getTeams.getTeamIDs();
+				ArrayList<Integer> teams = fplSQL.getTeamIDs();
 
-				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
+				SquadUpdate solver = new SquadUpdate(list, teams, fplSQL);
 
 				//Test optimal squad for up to 11 transfers.
 				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
@@ -280,20 +263,20 @@ public class Menu {
 
 
 					int[] squad = solver.squad;
-					squad = getPlayers.sortByPosition(squad);
-					names = getPlayers.getNames(squad);
+					squad = fplSQL.sortByPosition(squad);
+					names = fplSQL.getNames(squad);
 
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 27);
+						points = expectedPoints(id, 28);
 
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 					}
 
-					teamSelection = new TeamSelection(players, getPlayers);
+					teamSelection = new TeamSelection(players, fplSQL);
 					teamSelection.solve();
 
 					//For each transfer over 1 add a modifier of -4 points.
@@ -319,12 +302,12 @@ public class Menu {
 					System.out.println("No better team could be found.");
 				} else {
 
-					HashMap<Integer,Integer> existingSquad = squadData.getSquad();
+					HashMap<Integer,Integer> existingSquad = fplSQL.getSquad();
 
-					int currentValue = squadData.sellValues();
+					int currentValue = fplSQL.sellValues();
 
 					System.out.println("Optimal Squad with " + transfers + " transfers.");
-					names = getPlayers.getNames(currentSquad);
+					names = fplSQL.getNames(currentSquad);
 
 
 					for (int i = 0; i < 15; i++) {
@@ -333,17 +316,17 @@ public class Menu {
 
 						if (existingSquad.containsKey(currentSquad[i])) {
 
-							squadData.setPosition(i, currentSquad[i], names[i], existingSquad.get(currentSquad[i]));
+							fplSQL.setPosition(i, currentSquad[i], names[i], existingSquad.get(currentSquad[i]));
 
 						} else {
 
-							squadData.setPosition(i, currentSquad[i], names[i], getPlayers.getCost(currentSquad[i]));
+							fplSQL.setPosition(i, currentSquad[i], names[i], fplSQL.getCost(currentSquad[i]));
 
 						}
 					}
 
-					int newValue = squadData.sellValues();
-					userData.setMoneyRemaining(currentValue-newValue);
+					int newValue = fplSQL.sellValues();
+					fplSQL.setMoneyRemaining(currentValue-newValue);
 
 					showSquad();
 
@@ -368,34 +351,34 @@ public class Menu {
 
 				for (int i = 0; i < 15; i++) {
 
-					id = squadData.getId(i);
+					id = fplSQL.getId(i);
 					currentSquad[i] = id;
 
-					points = expectedPoints(id, 27);
+					points = expectedPoints(id, 28);
 
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 				}
 
-				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
 				double expectedPointsCurrent = teamSelection.expectedPoints(0);
 				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-				ArrayList<Integer> player_ids = getPlayers.getPlayers();
+				ArrayList<Integer> player_ids = fplSQL.getPlayers();
 
 				for (int id1 : player_ids) {
 
-					points = expectedPoints(id1, 27);
+					points = expectedPoints(id1, 28);
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
+					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
 				}
 
-				ArrayList<Integer> teams = getTeams.getTeamIDs();
+				ArrayList<Integer> teams = fplSQL.getTeamIDs();
 
-				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
+				SquadUpdate solver = new SquadUpdate(list, teams, fplSQL);
 
 				//Test optimal squad for up to 11 transfers.
 				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
@@ -410,20 +393,20 @@ public class Menu {
 
 
 					int[] squad = solver.squad;
-					squad = getPlayers.sortByPosition(squad);
-					names = getPlayers.getNames(squad);
+					squad = fplSQL.sortByPosition(squad);
+					names = fplSQL.getNames(squad);
 
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 27);
+						points = expectedPoints(id, 28);
 
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 					}
 
-					teamSelection = new TeamSelection(players, getPlayers);
+					teamSelection = new TeamSelection(players, fplSQL);
 					teamSelection.solve();
 
 					double expectedPoints = teamSelection.expectedPoints(0);
@@ -447,12 +430,12 @@ public class Menu {
 				} else {
 					System.out.println("Expected points for this team: " + expectedPointsCurrent);
 
-					HashMap<Integer,Integer> existingSquad = squadData.getSquad();
+					HashMap<Integer,Integer> existingSquad = fplSQL.getSquad();
 
-					int currentValue = squadData.sellValues();
+					int currentValue = fplSQL.sellValues();
 
 					System.out.println("Optimal Squad with " + transfers + " transfers.");
-					names = getPlayers.getNames(currentSquad);
+					names = fplSQL.getNames(currentSquad);
 
 
 					for (int i = 0; i < 15; i++) {
@@ -461,17 +444,17 @@ public class Menu {
 
 						if (existingSquad.containsKey(currentSquad[i])) {
 
-							squadData.setPosition(i, currentSquad[i], names[i], existingSquad.get(currentSquad[i]));
+							fplSQL.setPosition(i, currentSquad[i], names[i], existingSquad.get(currentSquad[i]));
 
 						} else {
 
-							squadData.setPosition(i, currentSquad[i], names[i], getPlayers.getCost(currentSquad[i]));
+							fplSQL.setPosition(i, currentSquad[i], names[i], fplSQL.getCost(currentSquad[i]));
 
 						}
 					}
 
-					int newValue = squadData.sellValues();
-					userData.setMoneyRemaining(currentValue-newValue);
+					int newValue = fplSQL.sellValues();
+					fplSQL.setMoneyRemaining(currentValue-newValue);
 
 					showSquad();
 
@@ -497,17 +480,17 @@ public class Menu {
 
 				for (int i = 0; i < 15; i++) {
 
-					id = squadData.getId(i);
+					id = fplSQL.getId(i);
 					currentSquad[i] = id;
 					currentSquadW[i] = id;
 
-					points = expectedPoints(id, 27);
+					points = expectedPoints(id, 28);
 
-					players[i] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 				}
 
-				TeamSelection teamSelection = new TeamSelection(players, getPlayers);
+				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
 				double expectedPointsCurrent = teamSelection.expectedPoints(0);
 				double expectedPointsCurrentW = expectedPointsCurrent;
@@ -515,17 +498,17 @@ public class Menu {
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
 
-				for (int id1 : getPlayers.getTrimmedPlayers()) {
+				for (int id1 : fplSQL.getTrimmedPlayers()) {
 
-					points = expectedPoints(id1, 27);
+					points = expectedPoints(id1, 28);
 
-					list.add(new PlayerValueCurrent(id1, getPlayers.getPosition(id1), getPlayers.getTeam(id1), getPlayers.getCost(id1), points));					
+					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
 				}
 
-				ArrayList<Integer> teams = getTeams.getTeamIDs();
+				ArrayList<Integer> teams = fplSQL.getTeamIDs();
 
-				SquadUpdate solver = new SquadUpdate(list, teams, squadData, userData);
+				SquadUpdate solver = new SquadUpdate(list, teams, fplSQL);
 
 				//Test optimal squad for up to 11 transfers.
 				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
@@ -542,20 +525,20 @@ public class Menu {
 					solver.solve();
 
 					int[] squad = solver.squad;
-					squad = getPlayers.sortByPosition(squad);
-					names = getPlayers.getNames(squad);
+					squad = fplSQL.sortByPosition(squad);
+					names = fplSQL.getNames(squad);
 
 					for (int j = 0; j < 15; j++) {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 27);
+						points = expectedPoints(id, 28);
 
-						players[j] = new PlayerValueCurrent(id, getPlayers.getPosition(id), getPlayers.getTeam(id), getPlayers.getCost(id), points);
+						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
 					}
 
-					teamSelection = new TeamSelection(players, getPlayers);
+					teamSelection = new TeamSelection(players, fplSQL);
 					teamSelection.solve();
 
 					//For each transfer over 1 add a modifier of -4 points.
@@ -597,12 +580,12 @@ public class Menu {
 
 					System.out.println("Optimal Squad with " + transfers + " transfers.");
 					System.out.println("Expected points for this team: " + expectedPointsCurrent);
-					names = getPlayers.getNames(currentSquad);
+					names = fplSQL.getNames(currentSquad);
 
 					for (int i = 0; i < 15; i++) {
 
 						System.out.println(names[i]);
-						squadPoints += getPlayers.getAveragePoints(currentSquad[i]);
+						squadPoints += fplSQL.getAveragePoints(currentSquad[i]);
 
 					}
 
@@ -614,12 +597,12 @@ public class Menu {
 
 					System.out.println("Optimal Squad with wildcard.");
 					System.out.println("Expected points for this team: " + expectedPointsCurrentW);
-					names = getPlayers.getNames(currentSquadW);
+					names = fplSQL.getNames(currentSquadW);
 
 					for (int i = 0; i < 15; i++) {
 
 						System.out.println(names[i]);
-						squadPointsW += getPlayers.getAveragePoints(currentSquadW[i]);
+						squadPointsW += fplSQL.getAveragePoints(currentSquadW[i]);
 
 					}
 
@@ -635,20 +618,20 @@ public class Menu {
 		updateDatabaseButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updateDatabaseButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
-				getPlayers.readJson();
-				getPlayers.updateDatabase();
+				fplSQL.readPlayers();
+				fplSQL.updatePlayers();
 
-				getTeams.readJson();
-				getTeams.updateDatabase();
+				fplSQL.readTeams();
+				fplSQL.updateTeams();
 
-				getGameweeks.readJson();
-				getGameweeks.updateDatabase();
+				fplSQL.readGameweeks();
+				fplSQL.updateGameweeks();
 
-				getFixtures.readJson();
-				getFixtures.updateDatabase();
+				fplSQL.readFixtures();
+				fplSQL.updateFixtures();
 
-				userData.updateDatabase();		
-				databaseLabel.setText("Last updated database at " + Time.getDate(userData.getTime()));
+				fplSQL.updateUserData();		
+				databaseLabel.setText("Last updated database at " + Time.getDate(fplSQL.getTime()));
 			}
 		});
 		updateDatabaseButton.setBounds(0, 48, 196, 48);
@@ -659,7 +642,7 @@ public class Menu {
 		updatePlayerHistoryButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				getPlayerHistory.update();
+				fplSQL.updatePlayerHistory();
 
 			}
 		});
@@ -671,8 +654,8 @@ public class Menu {
 		updatePastFixturesButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				ArrayList<Integer> players = getPlayers.getTrimmedPlayers();
-				pastFixturesSQL.getPastFixtures(players);
+				ArrayList<Integer> players = fplSQL.getTrimmedPlayers();
+				fplSQL.getPastFixtures(players);
 
 			}
 		});
@@ -687,10 +670,10 @@ public class Menu {
 
 		databaseLabel = new JLabel();
 
-		if (userData.getTime() == 0 ) {
+		if (fplSQL.getTime() == 0 ) {
 			databaseLabel = new JLabel("The database has never been updated.");
 		} else {
-			databaseLabel = new JLabel("Last updated database at " + Time.getDate(userData.getTime()));
+			databaseLabel = new JLabel("Last updated database at " + Time.getDate(fplSQL.getTime()));
 		}
 
 		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (5/(double)720*height), (int) (320/(double)1280*width), (int) (25/(double)720*height));
@@ -698,8 +681,8 @@ public class Menu {
 
 		infoPanel.add(databaseLabel);
 
-		if (squadData.hasSquad()) {
-			squadValueLabel = new JLabel("Squad value: " + squadData.value());
+		if (fplSQL.hasSquad()) {
+			squadValueLabel = new JLabel("Squad value: " + fplSQL.value());
 		} else {
 			squadValueLabel = new JLabel("No squad has been selected yet");
 		}
@@ -757,7 +740,7 @@ public class Menu {
 
 		for (int i = 0; i < 15; i++) {
 
-			playerLabels[i] = new JTextField(squadData.getName(i));
+			playerLabels[i] = new JTextField(fplSQL.getName(i));
 
 			switch (i+1) {
 
@@ -855,7 +838,7 @@ public class Menu {
 			case 8:
 
 				playerLabels[i].setFont(new Font("Serif", Font.BOLD, 16));
-				playerLabels[i].setBounds((int) (832/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (832/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				playerLabels[i].setOpaque(false);
 				playerLabels[i].setEditable(false);
 				playerLabels[i].setBorder(BorderFactory.createEmptyBorder());
@@ -881,7 +864,7 @@ public class Menu {
 			case 10:
 
 				playerLabels[i].setFont(new Font("Serif", Font.BOLD, 16));
-				playerLabels[i].setBounds((int) (958/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (958/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				playerLabels[i].setOpaque(false);
 				playerLabels[i].setEditable(false);
 				playerLabels[i].setBorder(BorderFactory.createEmptyBorder());
@@ -907,7 +890,7 @@ public class Menu {
 			case 12:
 
 				playerLabels[i].setFont(new Font("Serif", Font.BOLD, 16));
-				playerLabels[i].setBounds((int) (1084/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (1084/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				playerLabels[i].setOpaque(false);
 				playerLabels[i].setEditable(false);
 				playerLabels[i].setBorder(BorderFactory.createEmptyBorder());
@@ -1007,7 +990,7 @@ public class Menu {
 
 			case 8:
 
-				playerLabels[i].setBounds((int) (832/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (832/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				break;
 
 			case 9:
@@ -1017,7 +1000,7 @@ public class Menu {
 
 			case 10:
 
-				playerLabels[i].setBounds((int) (958/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (958/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				break;
 
 			case 11:
@@ -1027,7 +1010,7 @@ public class Menu {
 
 			case 12:
 
-				playerLabels[i].setBounds((int) (1084/(double)1280*width), (int) (275/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
+				playerLabels[i].setBounds((int) (1084/(double)1280*width), (int) (285/(double)720*height), (int) (200/(double)1280*width), (int) (20/(double)720*height));
 				break;
 
 			case 13:
@@ -1051,28 +1034,28 @@ public class Menu {
 
 	private double expectedPoints(int id, int gameweek) {
 
-		minutes = pastFixturesSQL.getExpectedMinutes(id, 27);
-		points = pastFixturesSQL.getExpectedPoints(id, 27);
+		minutes = fplSQL.getExpectedMinutes(id, 28);
+		points = fplSQL.getExpectedPoints(id, 28);
 
 		if (minutes > 60) {
-			points *= getPlayers.getPlayChance(id)/100.0;
+			points *= fplSQL.getPlayChance(id)/100.0;
 		} else if (minutes > 45) {
 			points *= 0.75;
-			points *= getPlayers.getPlayChance(id)/100.0;
+			points *= fplSQL.getPlayChance(id)/100.0;
 		} else if (minutes > 30) {
 			points *= 0.5;
-			points *= getPlayers.getPlayChance(id)/100.0;
+			points *= fplSQL.getPlayChance(id)/100.0;
 		} else {
 			points *= 0;
 		}
 
 
 		//Get team strength of player.
-		teamID = getTeams.getInt("SELECT id FROM teams WHERE code=" + getPlayers.getTeam(id) + ";");
-		teamStrength = getTeams.getInt("SELECT strength FROM teams WHERE id=" + teamID + ";");
+		teamID = fplSQL.getInt("SELECT id FROM teams WHERE code=" + fplSQL.getTeam(id) + ";");
+		teamStrength = fplSQL.getInt("SELECT strength FROM teams WHERE id=" + teamID + ";");
 
 		//Get opponent teams for all upcoming fixtures in gameweek.
-		opponentTeams = getFixtures.opponentTeams(teamID, gameweek);
+		opponentTeams = fplSQL.opponentTeams(teamID, gameweek);
 
 		expPoints = 0;
 
@@ -1087,7 +1070,7 @@ public class Menu {
 		for (int i : opponentTeams) {
 
 			//Get the strength difference.
-			strengthDiff = teamStrength - i;
+			strengthDiff = teamStrength - fplSQL.getInt("SELECT strength FROM teams WHERE id=" + i + ";");
 
 			//Add multipliers for each strength difference.
 			//A strength difference of 1 is disregarded.

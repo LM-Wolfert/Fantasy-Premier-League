@@ -8,8 +8,7 @@ import com.google.ortools.linearsolver.MPObjective;
 import com.google.ortools.linearsolver.MPSolver;
 import com.google.ortools.linearsolver.MPVariable;
 
-import me.laurens.FPL.sql.SquadData;
-import me.laurens.FPL.sql.UserData;
+import me.laurens.FPL.sql.FPLSQL;
 
 //Deals with potential transfers.
 //Similar to the squadsolver method but for each transfer over 1 the cost is 3 points.
@@ -22,8 +21,7 @@ public class SquadUpdate {
 	private ArrayList<PlayerValueCurrent> players;
 	private ArrayList<Integer> teams;
 	
-	private SquadData squadData;
-	private UserData userData;
+	private FPLSQL fplSQL;
 	
 	private MPSolver solver;
 	private MPVariable x;
@@ -33,12 +31,10 @@ public class SquadUpdate {
 	
 	private int transferCount;
 
-	public SquadUpdate(ArrayList<PlayerValueCurrent> players, ArrayList<Integer> teams, SquadData squadData, UserData userData) {
+	public SquadUpdate(ArrayList<PlayerValueCurrent> players, ArrayList<Integer> teams, FPLSQL fplSQL) {
 		this.players = players;
 		this.teams = teams;
-		this.squadData = squadData;
-		this.userData = userData;
-		
+		this.fplSQL = fplSQL;
 		transferCount = 11;
 	}
 	
@@ -94,7 +90,7 @@ public class SquadUpdate {
 		solver.makeConstraint(3, 3, "pos4");
 		
 		//Make cost constraint.
-		int money = squadData.sellValues() + userData.getMoneyRemaining();
+		int money = fplSQL.sellValues() + fplSQL.getMoneyRemaining();
 		cost = solver.makeConstraint(0, money, "cost");
 		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		
@@ -143,7 +139,7 @@ public class SquadUpdate {
 			}
 			
 			//Determines how many transfers can be made.
-			if (squadData.inSquad(p.id)) {
+			if (fplSQL.inSquad(p.id)) {
 				transfers.setCoefficient(x, 0);
 			} else {
 				transfers.setCoefficient(x, 1);

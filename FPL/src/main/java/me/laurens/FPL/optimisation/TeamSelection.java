@@ -2,7 +2,7 @@ package me.laurens.FPL.optimisation;
 
 import java.util.Arrays;
 
-import me.laurens.FPL.sql.GetPlayers;
+import me.laurens.FPL.sql.FPLSQL;
 
 //Deals with the selection of the team and any potential modifiers that are applied.
 
@@ -13,14 +13,14 @@ import me.laurens.FPL.sql.GetPlayers;
 public class TeamSelection {
 
 	private PlayerValueCurrent[] players;
-	private GetPlayers getPlayers;
+	private FPLSQL fplSQL;
 
 	private int[] team;
 	private int[] bench;
 
-	public TeamSelection(PlayerValueCurrent[] players, GetPlayers getPlayers) {
+	public TeamSelection(PlayerValueCurrent[] players, FPLSQL fplSQL) {
 		this.players = players;
-		this.getPlayers = getPlayers;
+		this.fplSQL = fplSQL;
 	}
 
 	public void solve() {
@@ -92,8 +92,8 @@ public class TeamSelection {
 
 		System.out.println("Starting Eleven:");
 
-		String[] teamNames = getPlayers.getNames(team);
-		String[] benchNames = getPlayers.getNames(bench);
+		String[] teamNames = fplSQL.getNames(team);
+		String[] benchNames = fplSQL.getNames(bench);
 
 		for (int i = 0; i < 11; i++) {
 
