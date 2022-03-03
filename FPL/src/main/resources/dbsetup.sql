@@ -69,6 +69,7 @@ CREATE TABLE IF NOT EXISTS squad_data
 	id		INT		NOT NULL,
 	name		VARCHAR(64)	NOT NULL,
 	purchase_price	DOUBLE		NOT NULL,
+	in_team		TINYINT(1)	NOT NULL,
 	PRIMARY KEY(position)
 );
 

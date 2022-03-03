@@ -61,16 +61,21 @@ public class Menu {
 	private double expPoints;
 
 	private int teamID;
-	private int teamStrength;
 	private ArrayList<Integer> opponentTeams;
-	private int strengthDiff;
+	private double strengthDiff;
 
 	private FPLSQL fplSQL;
+	
+	private int gameweek;
+	private double strength;
 
 	public Menu(FPLSQL fplSQL) {
 
 		this.fplSQL = fplSQL;
 
+		gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
+		strength = fplSQL.getInt("SELECT SUM(strength) FROM teams;")/20.0;
+		
 		pitchIcon = new ImageIcon(getClass().getClassLoader().getResource("pitch.jpg"));
 
 		JFrame frame = new JFrame();
@@ -191,7 +196,7 @@ public class Menu {
 
 					id = fplSQL.getId(i);
 
-					points = expectedPoints(id, 28);
+					points = expectedPoints(id, gameweek);
 					
 					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -224,7 +229,7 @@ public class Menu {
 					id = fplSQL.getId(i);
 					currentSquad[i] = id;
 
-					points = expectedPoints(id, 28);
+					points = expectedPoints(id, gameweek);
 
 					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -240,7 +245,7 @@ public class Menu {
 
 				for (int id1 : player_ids) {
 
-					points = expectedPoints(id1, 28);
+					points = expectedPoints(id1, gameweek);
 
 					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
@@ -270,7 +275,7 @@ public class Menu {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 28);
+						points = expectedPoints(id, gameweek);
 
 						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -354,7 +359,7 @@ public class Menu {
 					id = fplSQL.getId(i);
 					currentSquad[i] = id;
 
-					points = expectedPoints(id, 28);
+					points = expectedPoints(id, gameweek);
 
 					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -370,7 +375,7 @@ public class Menu {
 
 				for (int id1 : player_ids) {
 
-					points = expectedPoints(id1, 28);
+					points = expectedPoints(id1, gameweek);
 
 					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
@@ -400,7 +405,7 @@ public class Menu {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 28);
+						points = expectedPoints(id, gameweek);
 
 						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -484,7 +489,7 @@ public class Menu {
 					currentSquad[i] = id;
 					currentSquadW[i] = id;
 
-					points = expectedPoints(id, 28);
+					points = expectedPoints(id, gameweek);
 
 					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -500,7 +505,7 @@ public class Menu {
 
 				for (int id1 : fplSQL.getTrimmedPlayers()) {
 
-					points = expectedPoints(id1, 28);
+					points = expectedPoints(id1, gameweek);
 
 					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
 
@@ -532,7 +537,7 @@ public class Menu {
 
 						id = squad[j];
 
-						points = expectedPoints(id, 28);
+						points = expectedPoints(id, gameweek);
 
 						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
 
@@ -632,6 +637,10 @@ public class Menu {
 
 				fplSQL.updateUserData();		
 				databaseLabel.setText("Last updated database at " + Time.getDate(fplSQL.getTime()));
+				
+				//Update database reliant variables gameweek and average team strength.
+				gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
+				strength = fplSQL.getInt("SELECT SUM(strength) FROM teams;")/20.0;
 			}
 		});
 		updateDatabaseButton.setBounds(0, 48, 196, 48);
@@ -713,14 +722,17 @@ public class Menu {
 		scaleImage();
 
 		infoPanel.setBounds(0, (int) (604/(double)720*height), (int) (1266/(double)1280*width), (int) (79/(double)720*height));
-		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (15/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
-
+		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (5/(double)720*height), (int) (320/(double)1280*width), (int) (25/(double)720*height));
+		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (25/(double)720*height), (int) (320/(double)1280*width), (int) (45/(double)720*height));
+		
 		getSquadButton.setBounds(0, 0, (int) (196/(double)1280*width), (int) (48/(double)720*height));
 		updateSquadButton.setBounds((int) (196/(double)1280*width), (int) (48/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
-		updateSquadButton.setBounds((int) (196/(double)1280*width), (int) (96/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		updateSquadButtonW.setBounds((int) (196/(double)1280*width), (int) (96/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
 		testSquadButton.setBounds((int) (392/(double)1280*width), (int) (48/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
 		getTeamButton.setBounds((int) (196/(double)1280*width), 0, (int) (196/(double)1280*width), (int) (48/(double)720*height));
-		updateDatabaseButton.setBounds(0, (int) (49/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		updateDatabaseButton.setBounds(0, (int) (48/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		updatePlayerHistoryButton.setBounds(0, (int) (96/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
+		updatePastFixturesButton.setBounds(0, (int) (144/(double)720*height), (int) (196/(double)1280*width), (int) (48/(double)720*height));
 
 		resizeSquad();
 	}
@@ -1049,12 +1061,8 @@ public class Menu {
 			points *= 0;
 		}
 
-
-		//Get team strength of player.
-		teamID = fplSQL.getInt("SELECT id FROM teams WHERE code=" + fplSQL.getTeam(id) + ";");
-		teamStrength = fplSQL.getInt("SELECT strength FROM teams WHERE id=" + teamID + ";");
-
 		//Get opponent teams for all upcoming fixtures in gameweek.
+		teamID = fplSQL.getInt("SELECT id FROM teams WHERE code=" + fplSQL.getTeam(id) + ";");
 		opponentTeams = fplSQL.opponentTeams(teamID, gameweek);
 
 		expPoints = 0;
@@ -1070,33 +1078,10 @@ public class Menu {
 		for (int i : opponentTeams) {
 
 			//Get the strength difference.
-			strengthDiff = teamStrength - fplSQL.getInt("SELECT strength FROM teams WHERE id=" + i + ";");
+			strengthDiff = strength - fplSQL.getInt("SELECT strength FROM teams WHERE id=" + i + ";");
 
 			//Add multipliers for each strength difference.
-			//A strength difference of 1 is disregarded.
-			switch (strengthDiff) {
-
-			case -4:
-				expPoints += points * 0.4;
-				break;
-			case -3:
-				expPoints += points * 0.6;
-				break;
-			case -2:
-				expPoints += points * 0.8;
-				break;
-			case 2:
-				expPoints += points * 1.2;
-				break;
-			case 3:
-				expPoints += points * 1.4;
-				break;
-			case 4:
-				expPoints += points * 1.6;
-				break;
-			default:
-				expPoints += points;
-			}
+			expPoints += (1 + (strengthDiff/4)) * points;
 
 		}
 
