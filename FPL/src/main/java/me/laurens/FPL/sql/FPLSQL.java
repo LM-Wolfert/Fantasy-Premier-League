@@ -1095,7 +1095,7 @@ public class FPLSQL {
 	public int sellValues() {
 
 		int sum = 0;
-		
+
 		try (Connection conn = conn();
 				PreparedStatement statement = conn.prepareStatement("SELECT id, purchase_price FROM squad_data");
 				ResultSet results = statement.executeQuery()) {
@@ -1118,10 +1118,36 @@ public class FPLSQL {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		return sum;
 
 
+	}
+
+	public double sellValue(int id) {
+
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement("SELECT purchase_price FROM squad_data WHERE id=" + id + ";");
+				ResultSet results = statement.executeQuery()) {
+
+			results.next();
+
+			//If the purchase price is greater than the current price then the sell price is the current price.
+			//If the purchase price is less than the current price, calculate the sell price by current price - 50% of the profit (rounded to to nearest 0.1)
+			if (results.getInt(1) < getCost(id)) {
+
+				return (getCost(id) - Math.ceil((getCost(id) - results.getInt(1))/2.0));
+
+			} else {
+
+				return (getCost(results.getInt(1)));
+
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;
+		}
 	}
 
 	public boolean inSquad(int id) {
@@ -1153,7 +1179,7 @@ public class FPLSQL {
 		} catch (SQLException e) {
 			e.printStackTrace();
 		}
-		
+
 		return squad;
 	}
 

@@ -91,6 +91,7 @@ public class SquadUpdate {
 		
 		//Make cost constraint.
 		int money = fplSQL.sellValues() + fplSQL.getMoneyRemaining();
+		System.out.println(money);
 		cost = solver.makeConstraint(0, money, "cost");
 		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		
@@ -98,7 +99,15 @@ public class SquadUpdate {
 			
 			x = solver.makeIntVar(0, 1, String.valueOf(p.id));
 			
-			cost.setCoefficient(x, p.cost);
+			if (fplSQL.inSquad(p.id)) {
+				
+				cost.setCoefficient(x, fplSQL.sellValue(p.id));
+				
+			} else {
+			
+				cost.setCoefficient(x, p.cost);
+			
+			}
 			
 			for (MPConstraint c : solver.constraints()) {
 				
