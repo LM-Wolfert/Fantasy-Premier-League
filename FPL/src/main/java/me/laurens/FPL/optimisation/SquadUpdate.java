@@ -91,7 +91,6 @@ public class SquadUpdate {
 		
 		//Make cost constraint.
 		int money = fplSQL.sellValues() + fplSQL.getMoneyRemaining();
-		System.out.println(money);
 		cost = solver.makeConstraint(0, money, "cost");
 		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		
