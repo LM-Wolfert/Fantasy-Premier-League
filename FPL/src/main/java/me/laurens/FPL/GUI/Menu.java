@@ -260,7 +260,7 @@ public class Menu {
 				boolean changed = false;
 				int transfers = 0;
 				String[] names = new String[15];
-				for (int i = 1; i <= 11; i++) {
+				for (int i = 1; i <= 15; i++) {
 
 					solver.setTransferCount(i);
 					solver.setup();
@@ -390,7 +390,7 @@ public class Menu {
 				boolean changed = false;
 				int transfers = 0;
 				String[] names = new String[15];
-				for (int i = 1; i <= 11; i++) {
+				for (int i = 1; i <= 15; i++) {
 
 					solver.setTransferCount(i);
 					solver.setup();
@@ -523,7 +523,7 @@ public class Menu {
 				double squadPoints = 0;
 				double squadPointsW = 0;
 				String[] names = new String[15];
-				for (int i = 1; i <= 11; i++) {
+				for (int i = 1; i <= 15; i++) {
 
 					solver.setTransferCount(i);
 					solver.setup();
