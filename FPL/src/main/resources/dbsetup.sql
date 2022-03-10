@@ -47,9 +47,9 @@ CREATE TABLE IF NOT EXISTS fixtures
 
 CREATE TABLE IF NOT EXISTS user_data
 (
-	last_update	BIGINT		NOT NULL,
-	money_remaining	DOUBLE		NOT NULL,
-	PRIMARY KEY(last_update)
+	data		VARCHAR(64)	NOT NULL,
+	value		BIGINT		NOT NULL,
+	PRIMARY KEY(data)
 );
 
 CREATE TABLE IF NOT EXISTS player_history
@@ -69,7 +69,6 @@ CREATE TABLE IF NOT EXISTS squad_data
 	id		INT		NOT NULL,
 	name		VARCHAR(64)	NOT NULL,
 	purchase_price	DOUBLE		NOT NULL,
-	in_team		TINYINT(1)	NOT NULL,
 	PRIMARY KEY(position)
 );
 

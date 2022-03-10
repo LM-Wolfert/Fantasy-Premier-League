@@ -1,8 +1,10 @@
 package me.laurens.FPL.sql;
 
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
-import java.io.FileReader;
+import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -30,7 +32,6 @@ import me.laurens.FPL.Utils.Player;
 import me.laurens.FPL.Utils.PlayerHistory;
 import me.laurens.FPL.Utils.Team;
 import me.laurens.FPL.Utils.Teams;
-import me.laurens.FPL.Utils.Time;
 import me.laurens.FPL.api.JsonReader;
 
 public class FPLSQL {
@@ -68,7 +69,7 @@ public class FPLSQL {
 
 		try {
 
-			fixtures = gson.fromJson(new FileReader(path+"fixtures.json"), new TypeToken<List<Fixture>>() {}.getType());	
+			fixtures = gson.fromJson(new InputStreamReader(new FileInputStream(path+"fixtures.json"), StandardCharsets.UTF_8), new TypeToken<List<Fixture>>() {}.getType());	
 
 		} catch (JsonSyntaxException | JsonIOException | FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -154,7 +155,7 @@ public class FPLSQL {
 
 		try {
 
-			events = gson.fromJson(new FileReader(path+"general.json"), Events.class);	
+			events = gson.fromJson(new InputStreamReader(new FileInputStream(path+"general.json"), StandardCharsets.UTF_8), Events.class);	
 
 		} catch (JsonSyntaxException | JsonIOException | FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -319,7 +320,7 @@ public class FPLSQL {
 
 		try {
 
-			elements = gson.fromJson(new FileReader(path+"general.json"), Elements.class);	
+			elements = gson.fromJson(new InputStreamReader(new FileInputStream(path+"general.json"), StandardCharsets.UTF_8), new TypeToken<Elements>() { }.getType());
 
 		} catch (JsonSyntaxException | JsonIOException | FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -703,6 +704,28 @@ public class FPLSQL {
 			return 0;			
 		}		
 	}
+	
+	public long getLong(String sql) {
+
+		try (Connection conn = conn();
+				PreparedStatement statement = conn.prepareStatement(sql);
+				ResultSet results = statement.executeQuery()) {
+
+			if (results.next()) {
+
+				return results.getLong(1);
+
+			} else {
+
+				return 0;
+
+			}		
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+			return 0;			
+		}		
+	}
 
 	public ArrayList<Integer> getTrimmedPlayers() {
 
@@ -754,7 +777,7 @@ public class FPLSQL {
 
 		try {
 
-			teams = gson.fromJson(new FileReader(path+"general.json"), Teams.class);	
+			teams = gson.fromJson(new InputStreamReader(new FileInputStream(path+"general.json"), StandardCharsets.UTF_8), Teams.class);	
 
 		} catch (JsonSyntaxException | JsonIOException | FileNotFoundException e) {
 			// TODO Auto-generated catch block
@@ -1183,37 +1206,6 @@ public class FPLSQL {
 		return squad;
 	}
 
-	public void updateUserData() {
-
-		if (exists()) {
-
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"UPDATE user_data SET last_update=?;")) {
-
-				statement.setLong(1, Time.currentTime());
-				statement.executeUpdate();
-
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-		} else {
-
-			try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-					"INSERT INTO user_data(last_update, money_remaining) VALUES(?,?);")) {
-
-				statement.setLong(1, Time.currentTime());
-				statement.setDouble(2, 0);
-				statement.executeUpdate();
-
-			} catch (SQLException e) {
-				e.printStackTrace();
-			}
-
-		}
-
-	}
-
 	public boolean exists() {
 
 		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
@@ -1228,64 +1220,28 @@ public class FPLSQL {
 		}
 
 	}
-
-	public void clearUserData() {
-
-		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"DELETE FROM user_data;")) {
-			statement.executeUpdate();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-	}
-
-	public long getTime() {
-
-		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"SELECT last_update FROM user_data;");
-				ResultSet results = statement.executeQuery()) {
-
-			if (results.next()) {
-				return results.getLong(1);
-			} else {
-				return 0;
-			}
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return 0;
-		}
-
-	}
-
-	public void setMoneyRemaining(int val) {
-
-		try (Connection conn = conn(); PreparedStatement statement = conn.prepareStatement(
-				"UPDATE user_data SET money_remaining=money_remaining+" + val + ";")) {
-			statement.executeUpdate();
-
-		} catch (SQLException e) {
-			e.printStackTrace();
-		}
-
-	}
-
-	public int getMoneyRemaining() {
-
+	
+	public boolean update(String sql) {
+		
 		try (Connection conn = conn();
-				PreparedStatement statement = conn.prepareStatement("SELECT money_remaining FROM user_data;");
-				ResultSet results = statement.executeQuery()) {
-
-			results.next();
-
-			return results.getInt(1);
-
-
+				PreparedStatement statement = conn.prepareStatement(sql);) {
+			
+			int success = statement.executeUpdate();
+			
+			if (success > 1) {
+				
+				return true;
+				
+			} else {
+				
+				return false;
+				
+			}
 		} catch (SQLException e) {
 			e.printStackTrace();
-			return 0;
+			return false;
 		}
-
+		
+		
 	}
 }

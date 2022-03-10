@@ -101,7 +101,7 @@ public class Main {
 
 		BasicDataSource dataSource = new BasicDataSource();
 
-		dataSource.setUrl("jdbc:mysql://" + config.getValue("db.host") + ":" + config.getValue("db.port") +  "/fantasy_premier_league");
+		dataSource.setUrl("jdbc:mysql://" + config.getValue("db.host") + ":" + config.getValue("db.port") +  "/fantasy_premier_league?useUnicode=true&characterEncoding=UTF-8&useFastDateParsing=false");
 		//dataSource.setServerName(config.getValue("db.host"));
 		//dataSource.setPortNumber(Integer.parseInt(config.getValue("db.port")));
 		//dataSource.setDatabaseName("fantasy_premier_league");

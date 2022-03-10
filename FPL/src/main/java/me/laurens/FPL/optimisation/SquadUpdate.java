@@ -90,7 +90,7 @@ public class SquadUpdate {
 		solver.makeConstraint(3, 3, "pos4");
 		
 		//Make cost constraint.
-		int money = fplSQL.sellValues() + fplSQL.getMoneyRemaining();
+		int money = fplSQL.sellValues() + (int) fplSQL.getLong("SELECT value FROM user_data WHERE data='money_remaining'");
 		cost = solver.makeConstraint(0, money, "cost");
 		transfers = solver.makeConstraint(transferCount, transferCount, "transfers");
 		

@@ -124,6 +124,52 @@ public class TeamSelection {
 
 		}
 	}
+	
+	public String[][] getExpectedPoints() {
+		
+		String[] teamNames = fplSQL.getNames(team);
+		String[] benchNames = fplSQL.getNames(bench);
+		
+		String[][] expectedPoints = new String[15][2];
+		
+		int val = 0;
+
+		for (int i = 0; i < 11; i++) {
+
+			for (int j = 0; j < 15; j++) {
+
+				if (players[j].id == team[i]) {
+					
+					expectedPoints[val][0] = teamNames[i];
+					expectedPoints[val][1] = String.format("%.2f", players[j].composite);
+
+					val++;
+
+				}
+
+			}
+		}
+
+		for (int i = 0; i < 4; i++) {
+
+			for (int j = 0; j < 15; j++) {
+
+				if (players[j].id == bench[i]) {
+
+					expectedPoints[val][0] = benchNames[i];
+					expectedPoints[val][1] = String.format("%.2f", players[j].composite);
+
+					val++;
+
+				}
+
+			}
+
+		}
+		
+		return expectedPoints;		
+		
+	}
 
 	public double expectedPoints(double modifier) {
 
