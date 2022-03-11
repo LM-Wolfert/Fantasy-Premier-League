@@ -199,4 +199,17 @@ public class TeamSelection {
 		return 0;	
 
 	}
+	
+	public double benchPoints() {
+		
+		double sum = 0;
+		
+		for (int i = 0; i < 4; i++) {
+			
+			sum += getComposite(bench[i]);
+			
+		}
+		
+		return sum;
+	}
 }
