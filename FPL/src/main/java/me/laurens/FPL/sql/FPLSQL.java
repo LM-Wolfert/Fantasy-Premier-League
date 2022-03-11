@@ -1163,7 +1163,7 @@ public class FPLSQL {
 
 			} else {
 
-				return (getCost(results.getInt(1)));
+				return (getCost(id));
 
 			}
 

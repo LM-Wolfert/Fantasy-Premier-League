@@ -17,7 +17,6 @@ import javax.swing.JButton;
 import javax.swing.JDesktopPane;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
-import javax.swing.JList;
 import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
@@ -45,7 +44,6 @@ public class Menu {
 	private JButton getSquadButton;
 	private JButton updateSquadButton;
 	private JButton updateSquadButtonW;
-	private JButton testSquadButton;
 	private JButton updateDatabaseButton;
 	private JButton updatePlayerHistoryButton;
 	private JButton updatePastFixturesButton;
@@ -76,6 +74,8 @@ public class Menu {
 
 	private int gameweek;
 	private double strength;
+	
+	private String label;
 
 	public Menu(FPLSQL fplSQL) {
 
@@ -175,6 +175,7 @@ public class Menu {
 
 				showSquad();
 				showTeam();
+				showSquadUpdate();
 
 
 			}
@@ -318,6 +319,7 @@ public class Menu {
 
 					showSquad();
 					showTeam();
+					showSquadUpdate();
 
 				}
 
@@ -455,6 +457,7 @@ public class Menu {
 
 					showSquad();
 					showTeam();
+					showSquadUpdate();
 
 				}
 
@@ -463,156 +466,17 @@ public class Menu {
 		updateSquadButtonW.setBounds(294, 128, 294, 64);
 		desktopPane.add(updateSquadButtonW);
 
-		testSquadButton = new JButton("Update Current Squad - Test");
-		testSquadButton.setFont(new Font("Serif", Font.BOLD, 16));
-		testSquadButton.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent e) {
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update'")) {
 
-				int id;
-				//Get the expected points for the current team;
-				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
-				int[] currentSquad = new int[15];
-				int[] currentSquadW = new int[15];
+			label = "<html>" + "Update Database" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='database_update'")) + "</html>";
 
-				double points;
+		} else {
 
-				for (int i = 0; i < 15; i++) {
+			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
 
-					id = fplSQL.getId(i);
-					currentSquad[i] = id;
-					currentSquadW[i] = id;
+		}
 
-					points = expectedPoints(id);
-
-					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
-
-				}
-
-				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
-				teamSelection.solve();
-				double expectedPointsCurrent = teamSelection.expectedPoints(0);
-				double expectedPointsCurrentW = expectedPointsCurrent;
-				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
-
-				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
-
-				for (int id1 : fplSQL.getTrimmedPlayers()) {
-
-					points = expectedPoints(id1);
-
-					list.add(new PlayerValueCurrent(id1, fplSQL.getPosition(id1), fplSQL.getTeam(id1), fplSQL.getCost(id1), points));					
-
-				}
-
-				ArrayList<Integer> teams = fplSQL.getTeamIDs();
-
-				SquadUpdate solver = new SquadUpdate(list, teams, fplSQL);
-
-				//Test optimal squad for up to 11 transfers.
-				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
-				boolean changed = false;
-				boolean changedW = false;
-				int transfers = 0;
-				double squadPoints = 0;
-				double squadPointsW = 0;
-				String[] names = new String[15];
-				for (int i = 1; i <= 15; i++) {
-
-					solver.setTransferCount(i);
-					solver.setup();
-					solver.solve();
-
-					int[] squad = solver.squad;
-					squad = fplSQL.sortByPosition(squad);
-					names = fplSQL.getNames(squad);
-
-					for (int j = 0; j < 15; j++) {
-
-						id = squad[j];
-
-						points = expectedPoints(id);
-
-						players[j] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
-
-					}
-
-					teamSelection = new TeamSelection(players, fplSQL);
-					teamSelection.solve();
-
-					//For each transfer over 1 add a modifier of -4 points.
-					int modifier = (i-1) * -4;
-					double expectedPoints = teamSelection.expectedPoints(modifier);
-					double expectedPointsW = teamSelection.expectedPoints(0);
-
-					if (expectedPoints > expectedPointsCurrent) {
-						//Update current value.
-						expectedPointsCurrent = expectedPoints;
-						//System.out.println("Expected points for this team: " + expectedPoints);
-						changed = true;
-						transfers = i;
-						//Update current squad.
-						for (int h = 0; h < 15; h++) {
-
-							currentSquad[h] = squad[h];
-							//System.out.println(names[h]);
-						}
-					}
-
-					if (expectedPointsW > expectedPointsCurrentW) {
-
-						expectedPointsCurrentW = expectedPointsW;
-						changedW = true;
-
-						for (int h = 0; h < 15; h++) {
-
-							currentSquadW[h] = squad[h];
-							//System.out.println(names[h]);
-						}
-					}
-
-				}
-				if (!changed) {
-
-					System.out.println("No better team could be found.");
-				} else {
-
-					System.out.println("Optimal Squad with " + transfers + " transfers.");
-					System.out.println("Expected points for this team: " + expectedPointsCurrent);
-					names = fplSQL.getNames(currentSquad);
-
-					for (int i = 0; i < 15; i++) {
-
-						System.out.println(names[i]);
-						squadPoints += fplSQL.getAveragePoints(currentSquad[i]);
-
-					}
-
-					System.out.println("Average expected points for squad: " + squadPoints);
-
-				}
-
-				if (changedW) {
-
-					System.out.println("Optimal Squad with wildcard.");
-					System.out.println("Expected points for this team: " + expectedPointsCurrentW);
-					names = fplSQL.getNames(currentSquadW);
-
-					for (int i = 0; i < 15; i++) {
-
-						System.out.println(names[i]);
-						squadPointsW += fplSQL.getAveragePoints(currentSquadW[i]);
-
-					}
-
-					System.out.println("Average expected points for squad: " + squadPointsW);
-
-				}
-			}
-		});
-		testSquadButton.setBounds(392, 48, 196, 48);
-		//desktopPane.add(testSquadButton);
-
-		updateDatabaseButton = new JButton("Update Database");
+		updateDatabaseButton = new JButton(label);
 		updateDatabaseButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updateDatabaseButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -645,13 +509,43 @@ public class Menu {
 				gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
 				strength = fplSQL.getInt("SELECT SUM(strength) FROM teams;")/20.0;
 
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update'")) {
+
+					label = "<html>" + "Update Database" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='database_update'")) + "</html>";
+
+				} else {
+
+					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+
+				}
+				
+				updateDatabaseButton.setText(label);
+				
 				showTeam();
+
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
+
+					showSquadUpdate();
+
+				}
 			}
 		});
 		updateDatabaseButton.setBounds(0, 0, 294, 64);
 		desktopPane.add(updateDatabaseButton);
 
-		updatePlayerHistoryButton = new JButton("Update Player History");
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update'")) {
+
+			label = "<html>" + "Update Player History" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='playerhistory_update'")) + "</html>";
+
+		} else {
+
+			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+
+		}
+
+		updatePlayerHistoryButton = new JButton(label);
 		updatePlayerHistoryButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updatePlayerHistoryButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -659,9 +553,9 @@ public class Menu {
 				fplSQL.updatePlayerHistory();
 
 				//Set database update time in user_data.
-				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory';")) {
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
 
-					fplSQL.update("UPDATE user_data SET value = " + Time.currentTime() + " WHERE data='playerhistory';");
+					fplSQL.update("UPDATE user_data SET value = " + Time.currentTime() + " WHERE data='playerhistory_update';");
 
 				} else {
 
@@ -669,12 +563,42 @@ public class Menu {
 
 				}
 
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
+
+					showSquadUpdate();
+
+				}
+				
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update'")) {
+
+					label = "<html>" + "Update Player History" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='playerhistory_update'")) + "</html>";
+
+				} else {
+
+					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+
+				}
+				
+				updatePlayerHistoryButton.setText(label);
+
 			}
 		});
 		updatePlayerHistoryButton.setBounds(0, 64, 294, 64);
 		desktopPane.add(updatePlayerHistoryButton);
 
-		updatePastFixturesButton = new JButton("Update Past Fixtures");
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update'")) {
+
+			label = "<html>" + "Update Past Fixtures" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='pastfixtures_update'")) + "</html>";
+
+		} else {
+
+			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+
+		}
+		
+		updatePastFixturesButton = new JButton(label);
 		updatePastFixturesButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updatePastFixturesButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
@@ -695,6 +619,26 @@ public class Menu {
 
 				showTeam();
 
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
+						fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
+
+					showSquadUpdate();
+
+				}
+				
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update'")) {
+
+					label = "<html>" + "Update Past Fixtures" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='pastfixtures_update'")) + "</html>";
+
+				} else {
+
+					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+
+				}
+				
+				updatePastFixturesButton.setText(label);
+
 			}
 		});
 		updatePastFixturesButton.setBounds(0, 128, 294, 64);
@@ -708,7 +652,7 @@ public class Menu {
 
 		databaseLabel = new JLabel();
 
-		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update'")) {
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';")) {
 
 			databaseLabel = new JLabel("Last updated database at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='database_update'")));
 
@@ -734,8 +678,14 @@ public class Menu {
 		squadValueLabel.setFont(new Font("Serif", Font.BOLD, 16));
 
 		infoPanel.add(squadValueLabel);
-		
-		showSquadUpdate();
+
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
+				fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
+				fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
+
+			showSquadUpdate();
+
+		}
 
 		frame.getContentPane().add(desktopPane, BorderLayout.CENTER);
 
@@ -770,7 +720,7 @@ public class Menu {
 		updatePastFixturesButton.setBounds(0, (int) (128/(double)720*height), (int) (294/(double)1280*width), (int) (64/(double)720*height));
 
 		scrollPane.setBounds((int) (0/(double)1280*width), (int) (192/(double)720*height), (int) (588/(double)1280*width), (int) (476/(double)720*height));
-		
+
 		resizeSquad();
 		resizeTeam();
 	}
@@ -1589,7 +1539,7 @@ public class Menu {
 		} else {
 
 			names = fplSQL.getNames(currentSquad);
-			
+
 			for (int i = 0; i < 15; i++) {
 
 				ASquadUpdate[i][0] = names[i] + " - " + String.format("%.2f", expectedPoints(currentSquad[i]));
@@ -1644,25 +1594,25 @@ public class Menu {
 		}
 
 		String[] columns = {"Updated Squad","Updated Squad with Wildcard or Free Hit"};
-		
+
 		squadUpdateTable = new JTable(new DefaultTableModel(ASquadUpdate, columns) {
 
 			@Override
-		    public boolean isCellEditable(int row, int column) {
-		       //all cells false
-		       return false;
-		    }
+			public boolean isCellEditable(int row, int column) {
+				//all cells false
+				return false;
+			}
 		});
-		
+
 		squadUpdateTable.setFont(new Font("Serif", Font.BOLD, 16));
-		
+
 		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
 		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
-		
+
 		squadUpdateTable.setDefaultRenderer(String.class, centerRenderer);
 
 		squadUpdateTable.setVisible(true);
-		
+
 		scrollPane = new JScrollPane(squadUpdateTable);
 		squadUpdateTable.setFillsViewportHeight(true);
 
