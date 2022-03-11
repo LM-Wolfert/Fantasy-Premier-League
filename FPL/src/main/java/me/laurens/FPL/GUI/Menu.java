@@ -21,6 +21,7 @@ import javax.swing.JPanel;
 import javax.swing.JScrollPane;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.SwingConstants;
 import javax.swing.border.TitledBorder;
 import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
@@ -36,8 +37,13 @@ import me.laurens.FPL.sql.FPLSQL;
 public class Menu {
 
 	private JLabel pitchLabel;
-	private JLabel databaseLabel;
+
 	private JLabel squadValueLabel;
+	private JLabel moneyRemainingLabel;
+	private JLabel expectedPointsLabel;
+	private JLabel averagePointsLabel;
+	private JLabel tripleCaptainLabel;
+	private JLabel benchBoostLabel;
 
 	private JPanel infoPanel;
 
@@ -74,7 +80,7 @@ public class Menu {
 
 	private int gameweek;
 	private double strength;
-	
+
 	private String label;
 
 	public Menu(FPLSQL fplSQL) {
@@ -107,7 +113,23 @@ public class Menu {
 
 		});
 
-		desktopPane = new JDesktopPane();		
+		desktopPane = new JDesktopPane();	
+		
+		squadUpdateTable = new JTable();
+		squadUpdateTable.setFont(new Font("Serif", Font.BOLD, 16));
+
+		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
+		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
+
+		squadUpdateTable.setDefaultRenderer(String.class, centerRenderer);
+
+		squadUpdateTable.setVisible(true);
+
+		scrollPane = new JScrollPane(squadUpdateTable);
+		squadUpdateTable.setFillsViewportHeight(true);
+
+		scrollPane.setBounds((int) (0/(double)1280*width), (int) (192/(double)720*height), (int) (588/(double)1280*width), (int) (412/(double)720*height));
+		desktopPane.add(scrollPane);
 
 		pitchLabel = new JLabel();
 		pitchLabel.setBounds((int) (856/(double)1280*width), 0, (int) (410/(double)1280*width), (int) (604/(double)720*height));
@@ -213,8 +235,7 @@ public class Menu {
 
 				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
-				double expectedPointsCurrent = teamSelection.expectedPoints(0);
-				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
+				double expectedPointsCurrent = teamSelection.expectedPoints(0);		
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
 				ArrayList<Integer> player_ids = fplSQL.getPlayers();
@@ -234,7 +255,6 @@ public class Menu {
 				//Test optimal squad for up to 11 transfers.
 				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
 				boolean changed = false;
-				int transfers = 0;
 				String[] names = new String[15];
 				for (int i = 1; i <= 15; i++) {
 
@@ -267,8 +287,6 @@ public class Menu {
 					if (expectedPoints > expectedPointsCurrent) {
 						//Update current value.
 						expectedPointsCurrent = expectedPoints;
-						transfers = i;
-						System.out.println("Expected points for this team: " + expectedPoints);
 						changed = true;
 						//Update current squad.
 						for (int h = 0; h < 15; h++) {
@@ -280,20 +298,16 @@ public class Menu {
 				}
 				if (!changed) {
 
-					System.out.println("No better team could be found.");
 				} else {
 
 					HashMap<Integer,Integer> existingSquad = fplSQL.getSquad();
 
 					int currentValue = fplSQL.sellValues();
 
-					System.out.println("Optimal Squad with " + transfers + " transfers.");
 					names = fplSQL.getNames(currentSquad);
 
 
-					for (int i = 0; i < 15; i++) {
-
-						System.out.println(names[i]);						
+					for (int i = 0; i < 15; i++) {					
 
 						if (existingSquad.containsKey(currentSquad[i])) {
 
@@ -308,18 +322,75 @@ public class Menu {
 
 					int newValue = fplSQL.sellValues();
 					if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='money_remaining';")) {
-
-						fplSQL.update("UPDATE user_data SET value = " + (currentValue - newValue) + " WHERE data='money_remaining';");
+						
+						fplSQL.update("UPDATE user_data SET value = value+" + (currentValue - newValue) + " WHERE data='money_remaining';");
 
 					} else {
 
-						fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (currentValue - newValue) + ");");
+						fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (1000 - newValue) + ");");
 
 					}
 
 					showSquad();
 					showTeam();
 					showSquadUpdate();
+
+					//Expected Points
+					//Get the expected points for the current team;
+					players = new PlayerValueCurrent[15];
+					currentSquad = new int[15];
+					int[] currentSquadW = new int[15];
+
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						currentSquad[i] = id;
+						currentSquadW[i] = id;
+
+						points = expectedPoints(id);
+
+						players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
+
+					}
+
+					teamSelection = new TeamSelection(players, fplSQL);
+					teamSelection.solve();
+					points = teamSelection.expectedPoints(0);
+
+					expectedPointsLabel.setText("Expected Points: " + String.format("%.2f", points));
+
+					//Average Points
+					points = 0;
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						points += fplSQL.getAveragePoints(id);
+
+					}
+
+					averagePointsLabel.setText("Average Points: " + String.format("%.2f", points));
+
+					//Triple Captain
+					points = 0;
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						if (expectedPoints(id) > points) {
+
+							points = expectedPoints(id);
+
+						}
+
+					}
+
+					tripleCaptainLabel.setText("Triple Captain: " + String.format("%.2f", points));
+
+					//Bench Boost
+					points = teamSelection.benchPoints();
+					benchBoostLabel.setText("Bench Boost: " + String.format("%.2f", points));
 
 				}
 
@@ -353,8 +424,7 @@ public class Menu {
 
 				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 				teamSelection.solve();
-				double expectedPointsCurrent = teamSelection.expectedPoints(0);
-				System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
+				double expectedPointsCurrent = teamSelection.expectedPoints(0);	
 
 				ArrayList<PlayerValueCurrent> list = new ArrayList<>();
 				ArrayList<Integer> player_ids = fplSQL.getPlayers();
@@ -374,7 +444,6 @@ public class Menu {
 				//Test optimal squad for up to 11 transfers.
 				//More than 11 transfers would be counter-intuitive since it would mean the bench is transferred also.
 				boolean changed = false;
-				int transfers = 0;
 				String[] names = new String[15];
 				for (int i = 1; i <= 15; i++) {
 
@@ -405,7 +474,6 @@ public class Menu {
 					if (expectedPoints > expectedPointsCurrent) {
 						//Update current value.
 						expectedPointsCurrent = expectedPoints;
-						transfers = i;
 						changed = true;
 						//Update current squad.
 						for (int h = 0; h < 15; h++) {
@@ -416,22 +484,16 @@ public class Menu {
 
 				}
 				if (!changed) {
-
-					System.out.println("No better team could be found.");
 				} else {
-					System.out.println("Expected points for this team: " + expectedPointsCurrent);
 
 					HashMap<Integer,Integer> existingSquad = fplSQL.getSquad();
 
 					int currentValue = fplSQL.sellValues();
 
-					System.out.println("Optimal Squad with " + transfers + " transfers.");
 					names = fplSQL.getNames(currentSquad);
 
 
-					for (int i = 0; i < 15; i++) {
-
-						System.out.println(names[i]);						
+					for (int i = 0; i < 15; i++) {					
 
 						if (existingSquad.containsKey(currentSquad[i])) {
 
@@ -459,8 +521,63 @@ public class Menu {
 					showTeam();
 					showSquadUpdate();
 
-				}
+					//Expected Points
+					//Get the expected points for the current team;
+					players = new PlayerValueCurrent[15];
+					currentSquad = new int[15];
+					int[] currentSquadW = new int[15];
 
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						currentSquad[i] = id;
+						currentSquadW[i] = id;
+
+						points = expectedPoints(id);
+
+						players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
+
+					}
+
+					teamSelection = new TeamSelection(players, fplSQL);
+					teamSelection.solve();
+					points = teamSelection.expectedPoints(0);
+
+					expectedPointsLabel.setText("Expected Points: " + String.format("%.2f", points));
+
+					//Average Points
+					points = 0;
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						points += fplSQL.getAveragePoints(id);
+
+					}
+
+					averagePointsLabel.setText("Average Points: " + String.format("%.2f", points));
+					
+					//Triple Captain
+					points = 0;
+
+					for (int i = 0; i < 15; i++) {
+
+						id = fplSQL.getId(i);
+						if (expectedPoints(id) > points) {
+
+							points = expectedPoints(id);
+
+						}
+
+					}
+
+					tripleCaptainLabel.setText("Triple Captain: " + String.format("%.2f", points));
+
+					//Bench Boost
+					points = teamSelection.benchPoints();
+					benchBoostLabel.setText("Bench Boost: " + String.format("%.2f", points));
+				}
 			}
 		});
 		updateSquadButtonW.setBounds(294, 128, 294, 64);
@@ -492,19 +609,6 @@ public class Menu {
 				fplSQL.readFixtures();
 				fplSQL.updateFixtures();
 
-				//Set database update time in user_data.
-				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';")) {
-
-					fplSQL.update("UPDATE user_data SET value = " + Time.currentTime() + " WHERE data='database_update';");
-					databaseLabel.setText("Last updated database at " + Time.getDate(Time.currentTime()));
-
-				} else {
-
-					fplSQL.update("INSERT INTO user_data(data, value) VALUES('database_update', " + Time.currentTime() + ");");
-					databaseLabel.setText("Last updated database at " + Time.getDate(Time.currentTime()));
-
-				}
-
 				//Update database reliant variables gameweek and average team strength.
 				gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
 				strength = fplSQL.getInt("SELECT SUM(strength) FROM teams;")/20.0;
@@ -518,9 +622,9 @@ public class Menu {
 					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
 
 				}
-				
+
 				updateDatabaseButton.setText(label);
-				
+
 				showTeam();
 
 				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
@@ -570,7 +674,7 @@ public class Menu {
 					showSquadUpdate();
 
 				}
-				
+
 				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update'")) {
 
 					label = "<html>" + "Update Player History" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='playerhistory_update'")) + "</html>";
@@ -580,7 +684,7 @@ public class Menu {
 					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
 
 				}
-				
+
 				updatePlayerHistoryButton.setText(label);
 
 			}
@@ -597,7 +701,7 @@ public class Menu {
 			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
 
 		}
-		
+
 		updatePastFixturesButton = new JButton(label);
 		updatePastFixturesButton.setFont(new Font("Serif", Font.BOLD, 16));
 		updatePastFixturesButton.addActionListener(new ActionListener() {
@@ -626,7 +730,7 @@ public class Menu {
 					showSquadUpdate();
 
 				}
-				
+
 				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update'")) {
 
 					label = "<html>" + "Update Past Fixtures" + "<br>" + "Last updated at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='pastfixtures_update'")) + "</html>";
@@ -636,7 +740,7 @@ public class Menu {
 					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
 
 				}
-				
+
 				updatePastFixturesButton.setText(label);
 
 			}
@@ -644,40 +748,159 @@ public class Menu {
 		updatePastFixturesButton.setBounds(0, 128, 294, 64);
 		desktopPane.add(updatePastFixturesButton);
 
+		//Info Panel
 		infoPanel = new JPanel();
 		infoPanel.setBorder(new TitledBorder(null, "", TitledBorder.LEADING, TitledBorder.TOP, null, null));
-		infoPanel.setBounds(0, (int) (604/(double)720*height), (int) (1266/(double)1280*width), (int) (79/(double)720*height));
+		infoPanel.setBounds(0, (int) (604/(double)720*height), (int) (1280/(double)1280*width), (int) (80/(double)720*height));
 		desktopPane.add(infoPanel);
 		infoPanel.setLayout(null);
 
-		databaseLabel = new JLabel();
-
-		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';")) {
-
-			databaseLabel = new JLabel("Last updated database at " + Time.getDate(fplSQL.getLong("SELECT value FROM user_data WHERE data='database_update'")));
-
-		} else {
-
-			databaseLabel = new JLabel("The database has never been updated.");
-
-		}
-
-
-		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (5/(double)720*height), (int) (320/(double)1280*width), (int) (25/(double)720*height));
-		databaseLabel.setFont(new Font("Serif", Font.BOLD, 16));
-
-		infoPanel.add(databaseLabel);
-
+		//Squad Value
 		if (fplSQL.hasSquad()) {
-			squadValueLabel = new JLabel("Squad value: " + fplSQL.value());
+			squadValueLabel = new JLabel("Squad Value: " + fplSQL.value());
 		} else {
 			squadValueLabel = new JLabel("No squad has been selected yet");
 		}
 
-		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (25/(double)720*height), (int) (320/(double)1280*width), (int) (45/(double)720*height));
+		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (0/(double)720*height), (int) (320/(double)1280*width), (int) (40/(double)720*height));
 		squadValueLabel.setFont(new Font("Serif", Font.BOLD, 16));
+		squadValueLabel.setAlignmentX(0.5f);
 
 		infoPanel.add(squadValueLabel);
+
+		//Money Remaining
+		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='money_remaining';")) {
+			moneyRemainingLabel = new JLabel("Money Remaining: " + fplSQL.getLong("SELECT value FROM user_data WHERE data='money_remaining';")/10.0);
+		} else {
+			moneyRemainingLabel = new JLabel("Money Remaining: 100.0");
+		}
+
+		moneyRemainingLabel.setBounds((int) (6/(double)1280*width), (int) (40/(double)720*height), (int) (320/(double)1280*width), (int) (40/(double)720*height));
+		moneyRemainingLabel.setFont(new Font("Serif", Font.BOLD, 16));
+		moneyRemainingLabel.setAlignmentX(0.5f);
+
+		infoPanel.add(moneyRemainingLabel);
+
+		//Expected Points
+		if (fplSQL.hasSquad()) {
+
+			//Get the expected points for the current team;
+			PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+			int[] currentSquad = new int[15];
+			int[] currentSquadW = new int[15];
+			int id;
+
+			double points;
+
+			for (int i = 0; i < 15; i++) {
+
+				id = fplSQL.getId(i);
+				currentSquad[i] = id;
+				currentSquadW[i] = id;
+
+				points = expectedPoints(id);
+
+				players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
+
+			}
+
+			TeamSelection teamSelection = new TeamSelection(players, fplSQL);
+			teamSelection.solve();
+			points = teamSelection.expectedPoints(0);
+
+			expectedPointsLabel = new JLabel("Expected Points: " + String.format("%.2f", points), SwingConstants.CENTER);
+		} else {
+			expectedPointsLabel = new JLabel("No squad has been selected yet", SwingConstants.CENTER);
+		}
+
+		expectedPointsLabel.setBounds((int) (588/(double)1280*width), (int) (0/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		expectedPointsLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+		infoPanel.add(expectedPointsLabel);
+
+		//Average Points
+		if (fplSQL.hasSquad()) {
+
+			int id;
+			double points = 0;
+
+			for (int i = 0; i < 15; i++) {
+
+				id = fplSQL.getId(i);
+				points += fplSQL.getAveragePoints(id);
+
+			}
+
+			averagePointsLabel = new JLabel("Average Points: " + String.format("%.2f", points), SwingConstants.CENTER);
+		} else {
+			averagePointsLabel = new JLabel("No squad has been selected yet", SwingConstants.CENTER);
+		}
+
+		averagePointsLabel.setBounds((int) (588/(double)1280*width), (int) (40/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		averagePointsLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+		infoPanel.add(averagePointsLabel);
+
+		//Triple Captain
+		if (fplSQL.hasSquad()) {
+
+			int id;
+			double points = 0;
+
+			for (int i = 0; i < 15; i++) {
+
+				id = fplSQL.getId(i);
+				if (expectedPoints(id) > points) {
+
+					points = expectedPoints(id);
+
+				}
+
+			}
+
+			tripleCaptainLabel = new JLabel("Triple Captain: " + String.format("%.2f", points), SwingConstants.CENTER);
+		} else {
+			tripleCaptainLabel = new JLabel("No squad has been selected yet", SwingConstants.CENTER);
+		}
+
+		tripleCaptainLabel.setBounds((int) (788/(double)1280*width), (int) (0/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		tripleCaptainLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+		infoPanel.add(tripleCaptainLabel);
+
+		//Bench Boost
+		if (fplSQL.hasSquad()) {
+
+			PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+			TeamSelection teamSelection = new TeamSelection(players, fplSQL);
+			HashMap<Integer, Integer> squad = fplSQL.getSquad();
+			Object[] keys = squad.keySet().toArray();
+			int id;
+
+			for (int i = 0; i < 15; i++) {
+
+				id = (int) keys[i];
+
+				points = expectedPoints(id);
+
+				players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
+
+			}
+
+			teamSelection = new TeamSelection(players, fplSQL);
+			teamSelection.solve();
+
+			points = teamSelection.benchPoints();
+
+			benchBoostLabel = new JLabel("Bench Boost: " + String.format("%.2f", points), SwingConstants.CENTER);
+		} else {
+			benchBoostLabel = new JLabel("No squad has been selected yet", SwingConstants.CENTER);
+		}
+
+		benchBoostLabel.setBounds((int) (788/(double)1280*width), (int) (40/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		benchBoostLabel.setFont(new Font("Serif", Font.BOLD, 16));
+
+		infoPanel.add(benchBoostLabel);
 
 		if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
 				fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
@@ -707,9 +930,13 @@ public class Menu {
 		pitchLabel.setBounds((int) (856/(double)1280*width), 0, (int) (410/(double)1280*width), (int) (604/(double)720*height));
 		scaleImage();
 
-		infoPanel.setBounds(0, (int) (604/(double)720*height), (int) (1266/(double)1280*width), (int) (79/(double)720*height));
-		databaseLabel.setBounds((int) (6/(double)1280*width), (int) (5/(double)720*height), (int) (320/(double)1280*width), (int) (25/(double)720*height));
-		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (25/(double)720*height), (int) (320/(double)1280*width), (int) (45/(double)720*height));
+		infoPanel.setBounds(0, (int) (604/(double)720*height), (int) (1280/(double)1280*width), (int) (80/(double)720*height));
+		squadValueLabel.setBounds((int) (6/(double)1280*width), (int) (0/(double)720*height), (int) (320/(double)1280*width), (int) (40/(double)720*height));
+		moneyRemainingLabel.setBounds((int) (6/(double)1280*width), (int) (40/(double)720*height), (int) (320/(double)1280*width), (int) (40/(double)720*height));
+		expectedPointsLabel.setBounds((int) (588/(double)1280*width), (int) (0/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		averagePointsLabel.setBounds((int) (588/(double)1280*width), (int) (40/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		tripleCaptainLabel.setBounds((int) (788/(double)1280*width), (int) (0/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
+		benchBoostLabel.setBounds((int) (788/(double)1280*width), (int) (40/(double)720*height), (int) (268/(double)1280*width), (int) (40/(double)720*height));
 
 		getSquadButton.setBounds((int) (294/(double)1280*width), 0, (int) (294/(double)1280*width), (int) (64/(double)720*height));
 		updateSquadButton.setBounds((int) (294/(double)1280*width), (int) (64/(double)720*height), (int) (294/(double)1280*width), (int) (64/(double)720*height));
@@ -719,7 +946,7 @@ public class Menu {
 		updatePlayerHistoryButton.setBounds(0, (int) (64/(double)720*height), (int) (294/(double)1280*width), (int) (64/(double)720*height));
 		updatePastFixturesButton.setBounds(0, (int) (128/(double)720*height), (int) (294/(double)1280*width), (int) (64/(double)720*height));
 
-		scrollPane.setBounds((int) (0/(double)1280*width), (int) (192/(double)720*height), (int) (588/(double)1280*width), (int) (476/(double)720*height));
+		scrollPane.setBounds((int) (0/(double)1280*width), (int) (192/(double)720*height), (int) (588/(double)1280*width), (int) (412/(double)720*height));
 
 		resizeSquad();
 		resizeTeam();
@@ -1444,8 +1671,7 @@ public class Menu {
 		TeamSelection teamSelection = new TeamSelection(players, fplSQL);
 		teamSelection.solve();
 		double expectedPointsCurrent = teamSelection.expectedPoints(0);
-		double expectedPointsCurrentW = expectedPointsCurrent;
-		System.out.println("Expected points for existing team: " + expectedPointsCurrent);			
+		double expectedPointsCurrentW = expectedPointsCurrent;		
 
 		ArrayList<PlayerValueCurrent> list = new ArrayList<>();
 
@@ -1504,14 +1730,12 @@ public class Menu {
 			if (expectedPoints > expectedPointsCurrent) {
 				//Update current value.
 				expectedPointsCurrent = expectedPoints;
-				//System.out.println("Expected points for this team: " + expectedPoints);
 				changed = true;
 				transfers = i;
 				//Update current squad.
 				for (int h = 0; h < 15; h++) {
 
 					currentSquad[h] = squad[h];
-					//System.out.println(names[h]);
 				}
 			}
 
@@ -1524,17 +1748,15 @@ public class Menu {
 				for (int h = 0; h < 15; h++) {
 
 					currentSquadW[h] = squad[h];
-					//System.out.println(names[h]);
+					
 				}
 			}
 
 		}
 
-		String[][] ASquadUpdate = new String[19][2];
+		String[][] ASquadUpdate = new String[21][2];
 
 		if (!changed) {
-
-			System.out.println("No better team could be found.");
 
 		} else {
 
@@ -1557,6 +1779,35 @@ public class Menu {
 			}
 
 			ASquadUpdate[18][0] = "Average Points = " + String.format("%.2f", squadPoints);
+
+			points = 0;
+
+			for (int i = 0; i < 15; i++) {
+
+				if (expectedPoints(currentSquad[i]) > points) {
+
+					points = expectedPoints(currentSquad[i]);
+
+				}
+
+			}
+
+			ASquadUpdate[19][0] = "Triple Captain = " + String.format("%.2f", points);
+
+			for (int i = 0; i < 15; i++) {
+
+				points = expectedPoints(currentSquad[i]);
+
+				players[i] = new PlayerValueCurrent(currentSquad[i], fplSQL.getPosition(currentSquad[i]), fplSQL.getTeam(currentSquad[i]), fplSQL.getCost(currentSquad[i]), points);
+
+			}
+
+			teamSelection = new TeamSelection(players, fplSQL);
+			teamSelection.solve();
+
+			points = teamSelection.benchPoints();
+
+			ASquadUpdate[20][0] = "Bench Boost = " + String.format("%.2f", points);
 
 		}
 
@@ -1590,12 +1841,41 @@ public class Menu {
 
 			}
 
+			points = 0;
+
+			for (int i = 0; i < 15; i++) {
+
+				if (expectedPoints(currentSquadW[i]) > points) {
+
+					points = expectedPoints(currentSquadW[i]);
+
+				}
+
+			}
+
+			ASquadUpdate[19][1] = "Triple Captain = " + String.format("%.2f", points);
+
+			for (int i = 0; i < 15; i++) {
+
+				points = expectedPoints(currentSquadW[i]);
+
+				players[i] = new PlayerValueCurrent(currentSquadW[i], fplSQL.getPosition(currentSquadW[i]), fplSQL.getTeam(currentSquadW[i]), fplSQL.getCost(currentSquadW[i]), points);
+
+			}
+
+			teamSelection = new TeamSelection(players, fplSQL);
+			teamSelection.solve();
+
+			points = teamSelection.benchPoints();
+
+			ASquadUpdate[20][1] = "Bench Boost = " + String.format("%.2f", points);
+
 
 		}
 
 		String[] columns = {"Updated Squad","Updated Squad with Wildcard or Free Hit"};
-
-		squadUpdateTable = new JTable(new DefaultTableModel(ASquadUpdate, columns) {
+		
+		squadUpdateTable.setModel(new DefaultTableModel(ASquadUpdate, columns) {
 
 			@Override
 			public boolean isCellEditable(int row, int column) {
@@ -1603,21 +1883,5 @@ public class Menu {
 				return false;
 			}
 		});
-
-		squadUpdateTable.setFont(new Font("Serif", Font.BOLD, 16));
-
-		DefaultTableCellRenderer centerRenderer = new DefaultTableCellRenderer();
-		centerRenderer.setHorizontalAlignment( JLabel.CENTER );
-
-		squadUpdateTable.setDefaultRenderer(String.class, centerRenderer);
-
-		squadUpdateTable.setVisible(true);
-
-		scrollPane = new JScrollPane(squadUpdateTable);
-		squadUpdateTable.setFillsViewportHeight(true);
-
-		scrollPane.setBounds((int) (0/(double)1280*width), (int) (192/(double)720*height), (int) (588/(double)1280*width), (int) (476/(double)720*height));
-		desktopPane.add(scrollPane);
-
 	}
 }
