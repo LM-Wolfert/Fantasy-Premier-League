@@ -71,6 +71,9 @@ public class Menu {
 	private double minutes;
 	private double points;
 	private double expPoints;
+	
+	private double hist_max_minutes;
+	private double standard_minutes;
 
 	private int teamID;
 	private ArrayList<Integer> opponentTeams;
@@ -89,6 +92,8 @@ public class Menu {
 
 		gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
 		strength = fplSQL.getInt("SELECT SUM(strength) FROM teams;")/20.0;
+		
+		hist_max_minutes = fplSQL.getDouble("SELECT minutes FROM player_history ORDER BY minutes DESC;");
 
 		pitchIcon = new ImageIcon(getClass().getClassLoader().getResource("pitch.jpg"));
 
@@ -152,7 +157,7 @@ public class Menu {
 
 				double hist_max_points = fplSQL.getDouble("SELECT total_points FROM player_history ORDER BY total_points DESC;");
 				double hist_max_ict = fplSQL.getDouble("SELECT ict_index FROM player_history ORDER BY ict_index DESC;");
-				double hist_max_minutes = fplSQL.getDouble("SELECT minutes FROM player_history ORDER BY minutes DESC;");
+				hist_max_minutes = fplSQL.getDouble("SELECT minutes FROM player_history ORDER BY minutes DESC;");
 
 				double history;
 				double ict_comp;
@@ -608,6 +613,17 @@ public class Menu {
 
 				fplSQL.readFixtures();
 				fplSQL.updateFixtures();
+				
+				//Set database update time in user_data.
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';")) {
+
+					fplSQL.update("UPDATE user_data SET value = " + Time.currentTime() + " WHERE data='database_update';");
+
+				} else {
+
+					fplSQL.update("INSERT INTO user_data(data, value) VALUES('database_update', " + Time.currentTime() + ");");
+
+				}
 
 				//Update database reliant variables gameweek and average team strength.
 				gameweek = fplSQL.getInt("SELECT id FROM gameweeks WHERE is_next=1;");
@@ -685,6 +701,7 @@ public class Menu {
 
 				}
 
+				hist_max_minutes = fplSQL.getDouble("SELECT minutes FROM player_history ORDER BY minutes DESC;");
 				updatePlayerHistoryButton.setText(label);
 
 			}
@@ -707,7 +724,7 @@ public class Menu {
 		updatePastFixturesButton.addActionListener(new ActionListener() {
 			public void actionPerformed(ActionEvent e) {
 
-				ArrayList<Integer> players = fplSQL.getTrimmedPlayers();
+				ArrayList<Integer> players = fplSQL.getTrimmedPlayers(gameweek);
 				fplSQL.getPastFixtures(players);
 
 				//Set database update time in user_data.
@@ -1601,9 +1618,32 @@ public class Menu {
 	}
 
 	private double expectedPoints(int id) {
-
-		minutes = fplSQL.getExpectedMinutes(id, gameweek);
-		points = fplSQL.getExpectedPoints(id, gameweek);
+		
+		//If the gameweek is less than 7 and the player has played less than 120 minutes
+		//use an alternative calculation to get expected points based on the stats of the previous season.
+		//If no stats exist for the previous season give them an expected points value of 0.
+		if (gameweek < 7 && fplSQL.hasRow("SELECT id FROM players WHERE minutes<120")) {
+			
+			//If the player has historical data from the previous season.
+			if (fplSQL.hasHistory(id)) {
+				
+				//Get standardised minutes.
+				standard_minutes = fplSQL.getDouble("SELECT minutes FROM player_history WHERE id=" + id + ";")/hist_max_minutes;
+				
+				//Calculate average points.
+				points = (fplSQL.getDouble("SELECT total_points FROM player_history WHERE id=" + id + ";") / 38.0) * standard_minutes;
+				
+				//Calculate average minutes.
+				minutes = standard_minutes * 90;
+				
+			}
+			
+		} else {
+			
+			minutes = fplSQL.getExpectedMinutes(id, gameweek);
+			points = fplSQL.getExpectedPoints(id, gameweek);
+			
+		}
 
 		if (minutes > 60) {
 			points *= fplSQL.getPlayChance(id)/100.0;
@@ -1675,7 +1715,7 @@ public class Menu {
 
 		ArrayList<PlayerValueCurrent> list = new ArrayList<>();
 
-		for (int id1 : fplSQL.getTrimmedPlayers()) {
+		for (int id1 : fplSQL.getTrimmedPlayers(gameweek)) {
 
 			points = expectedPoints(id1);
 

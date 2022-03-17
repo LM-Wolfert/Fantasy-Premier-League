@@ -704,7 +704,7 @@ public class FPLSQL {
 			return 0;			
 		}		
 	}
-	
+
 	public long getLong(String sql) {
 
 		try (Connection conn = conn();
@@ -727,27 +727,49 @@ public class FPLSQL {
 		}		
 	}
 
-	public ArrayList<Integer> getTrimmedPlayers() {
+	public ArrayList<Integer> getTrimmedPlayers(int gameweek) {
 
 		ArrayList<Integer> players = new ArrayList<>();
 
-		try (Connection conn = conn();
-				PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE total_points>0 AND minutes>0;");
-				ResultSet results = statement.executeQuery()) {
+		//If gameweek is less than 7 return all players, as there is too little data for the trimming process.
+		if (gameweek < 7) {
+			
+			try (Connection conn = conn();
+					PreparedStatement statement = conn.prepareStatement("SELECT id FROM players;");
+					ResultSet results = statement.executeQuery()) {
 
-			while (results.next()) {
+				while (results.next()) {
 
-				players.add(results.getInt(1));
+					players.add(results.getInt(1));
 
+				}
+
+				return players;
+
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return players;
 			}
 
-			return players;
+		} else {
 
-		} catch (SQLException e) {
-			e.printStackTrace();
-			return players;
+			try (Connection conn = conn();
+					PreparedStatement statement = conn.prepareStatement("SELECT id FROM players WHERE total_points>0 AND minutes>0;");
+					ResultSet results = statement.executeQuery()) {
+
+				while (results.next()) {
+
+					players.add(results.getInt(1));
+
+				}
+
+				return players;
+
+			} catch (SQLException e) {
+				e.printStackTrace();
+				return players;
+			}
 		}
-
 	}
 
 	public String getString(String sql) {
@@ -1220,28 +1242,28 @@ public class FPLSQL {
 		}
 
 	}
-	
+
 	public boolean update(String sql) {
-		
+
 		try (Connection conn = conn();
 				PreparedStatement statement = conn.prepareStatement(sql);) {
-			
+
 			int success = statement.executeUpdate();
-			
+
 			if (success > 1) {
-				
+
 				return true;
-				
+
 			} else {
-				
+
 				return false;
-				
+
 			}
 		} catch (SQLException e) {
 			e.printStackTrace();
 			return false;
 		}
-		
-		
+
+
 	}
 }
