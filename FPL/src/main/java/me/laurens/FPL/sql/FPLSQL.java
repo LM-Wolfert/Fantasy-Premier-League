@@ -1056,7 +1056,7 @@ public class FPLSQL {
 		} else {
 			try (Connection conn = conn();
 					PreparedStatement statement = conn
-							.prepareStatement("INSERT INTO squad_data(position, id, name, purchase_price) VALUES(?,?,?.?);")) {
+							.prepareStatement("INSERT INTO squad_data(position, id, name, purchase_price) VALUES(?,?,?,?);")) {
 
 				statement.setInt(1, position);
 				statement.setInt(2, id);
