@@ -1,10 +1,12 @@
 package me.laurens.FPL;
 
 import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.MalformedURLException;
+import java.net.URISyntaxException;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
@@ -26,7 +28,16 @@ public class Main {
 	public static void main(String[] args) {
 
 		//Path to download data from the api
-		String path = System.getProperty("user.dir");
+		String path = null;
+		try {
+			path = Main.class.getProtectionDomain().getCodeSource().getLocation().toURI().getPath();
+			path = new File(path).getParentFile().getPath();
+			path = path + "\\";
+		} catch (URISyntaxException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		System.out.println(path);
 
 		//Setup config
 		Config config = new Config(path);
