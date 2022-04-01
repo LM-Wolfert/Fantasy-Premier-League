@@ -200,10 +200,76 @@ public class Menu {
 					fplSQL.setPosition(i, squad[i], names[i], fplSQL.getCost(squad[i]));
 				}
 
+				int newValue = fplSQL.sellValues();
+				
+				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='money_remaining';")) {
+					
+					fplSQL.update("UPDATE user_data SET value = " + (1000 - newValue) + " WHERE data='money_remaining';");
+
+				} else {
+
+					fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (1000 - newValue) + ");");
+				}
+
 				showSquad();
 				showTeam();
 				showSquadUpdate();
 
+				//Expected Points
+				//Get the expected points for the current team;
+				PlayerValueCurrent[] players = new PlayerValueCurrent[15];
+				int[] currentSquad = new int[15];
+				int id;
+
+
+				for (int i = 0; i < 15; i++) {
+
+					id = fplSQL.getId(i);
+					currentSquad[i] = id;
+
+					points = expectedPoints(id);
+
+					players[i] = new PlayerValueCurrent(id, fplSQL.getPosition(id), fplSQL.getTeam(id), fplSQL.getCost(id), points);
+
+				}
+
+				TeamSelection teamSelection = new TeamSelection(players, fplSQL);
+				teamSelection.solve();
+				points = teamSelection.expectedPoints(0);
+
+				expectedPointsLabel.setText("Expected Points: " + String.format("%.2f", points));
+
+				//Average Points
+				points = 0;
+
+				for (int i = 0; i < 15; i++) {
+
+					id = fplSQL.getId(i);
+					points += fplSQL.getAveragePoints(id);
+
+				}
+
+				averagePointsLabel.setText("Average Points: " + String.format("%.2f", points));
+
+				//Triple Captain
+				points = 0;
+
+				for (int i = 0; i < 15; i++) {
+
+					id = fplSQL.getId(i);
+					if (expectedPoints(id) > points) {
+
+						points = expectedPoints(id);
+
+					}
+
+				}
+
+				tripleCaptainLabel.setText("Triple Captain: " + String.format("%.2f", points));
+
+				//Bench Boost
+				points = teamSelection.benchPoints();
+				benchBoostLabel.setText("Bench Boost: " + String.format("%.2f", points));
 
 			}
 		});
