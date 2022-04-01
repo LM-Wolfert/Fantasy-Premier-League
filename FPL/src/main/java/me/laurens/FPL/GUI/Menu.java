@@ -210,6 +210,8 @@ public class Menu {
 
 					fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (1000 - newValue) + ");");
 				}
+				moneyRemainingLabel.setText("Money Remaining: " + fplSQL.getLong("SELECT value FROM user_data WHERE data='money_remaining';")/10.0);
+				squadValueLabel.setText("Squad Value: " + fplSQL.value());
 
 				showSquad();
 				showTeam();
@@ -401,7 +403,9 @@ public class Menu {
 						fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (1000 - newValue) + ");");
 
 					}
-
+					moneyRemainingLabel.setText("Money Remaining: " + fplSQL.getLong("SELECT value FROM user_data WHERE data='money_remaining';")/10.0);
+					squadValueLabel.setText("Squad Value: " + fplSQL.value());
+					
 					showSquad();
 					showTeam();
 					showSquadUpdate();
@@ -587,7 +591,9 @@ public class Menu {
 						fplSQL.update("INSERT INTO user_data(data, value) VALUES('money_remaining', " + (currentValue - newValue) + ");");
 
 					}
-
+					moneyRemainingLabel.setText("Money Remaining: " + fplSQL.getLong("SELECT value FROM user_data WHERE data='money_remaining';")/10.0);
+					squadValueLabel.setText("Squad Value: " + fplSQL.value());
+					
 					showSquad();
 					showTeam();
 					showSquadUpdate();
