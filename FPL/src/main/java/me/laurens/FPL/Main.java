@@ -26,7 +26,7 @@ public class Main {
 	public static void main(String[] args) {
 
 		//Path to download data from the api
-		String path = "C:\\Users\\Laurens\\Documents\\FPL\\";
+		String path = System.getProperty("user.dir");
 
 		//Setup config
 		Config config = new Config(path);
