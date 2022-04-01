@@ -641,7 +641,9 @@ public class Menu {
 
 				updateDatabaseButton.setText(label);
 
-				showTeam();
+				if (fplSQL.hasSquad()) {
+					showTeam();
+				}
 
 				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
 						fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
@@ -661,7 +663,7 @@ public class Menu {
 
 		} else {
 
-			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+			label = "<html>" + "Update Player History" + "<br>" + "No database records available" + "</html>";
 
 		}
 
@@ -697,7 +699,7 @@ public class Menu {
 
 				} else {
 
-					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+					label = "<html>" + "Update Player History" + "<br>" + "No database records available" + "</html>";
 
 				}
 
@@ -715,7 +717,7 @@ public class Menu {
 
 		} else {
 
-			label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+			label = "<html>" + "Update Past Fixtures" + "<br>" + "No database records available" + "</html>";
 
 		}
 
@@ -738,7 +740,9 @@ public class Menu {
 
 				}
 
-				showTeam();
+				if (fplSQL.hasSquad()) {
+					showTeam();
+				}
 
 				if (fplSQL.hasRow("SELECT data FROM user_data WHERE data='database_update';") &&
 						fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
@@ -754,7 +758,7 @@ public class Menu {
 
 				} else {
 
-					label = "<html>" + "Update Database" + "<br>" + "No database records available" + "</html>";
+					label = "<html>" + "Update Past Fixtures" + "<br>" + "No database records available" + "</html>";
 
 				}
 
@@ -923,7 +927,9 @@ public class Menu {
 				fplSQL.hasRow("SELECT data FROM user_data WHERE data='pastfixtures_update';") &&
 				fplSQL.hasRow("SELECT data FROM user_data WHERE data='playerhistory_update';")) {
 
-			showSquadUpdate();
+			if (fplSQL.hasSquad()) {
+				showSquadUpdate();
+			}
 
 		}
 
